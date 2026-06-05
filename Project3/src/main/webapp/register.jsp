@@ -1,6 +1,6 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-    pageEncoding="UTF-8"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ include file="db_config.jsp" %>
+<%@ include file="navbar.jsp" %>
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,16 +9,25 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-	<div class="page-shell">
+    <div class="page-shell">
       <div class="card">
-        <h2>Register</h2>
+        <h2 style="margin-bottom: 1.5rem; text-align: center;">Register</h2>
         <form method="POST">
-            <input type="text" name="user" placeholder="Username" required>
-            <input type="password" name="pass" placeholder="Password" required>
-            <input type="email" name="email" placeholder="Email" required>
-            <button type="submit">Create Account</button>
+            <div class="form-group">
+                <input type="text" name="user" placeholder="Username" required>
+            </div>
+            <div class="form-group">
+                <input type="password" name="pass" placeholder="Password" required>
+            </div>
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Email" required>
+            </div>
+            
+            <button type="submit" class="btn-submit">Create Account</button>
         </form>
-        <p><a href="login.jsp">Already have an account? Login</a></p>
+        <div class="reg-link">
+            Already have an account? <a href="login.jsp">Login</a>
+        </div>
 
         <%
             if(request.getMethod().equalsIgnoreCase("POST")) {
@@ -29,7 +38,8 @@
                     ps.setString(3, request.getParameter("email"));
                     ps.executeUpdate();
                     out.print("<script>alert('Registered!'); window.location='login.jsp';</script>");
-                } catch(Exception e) { out.print("Error: " + e.getMessage()); }
+                } catch(Exception e) { out.print("<p class='error'>Error: " + e.getMessage() + "</p>");
+                }
             }
         %>
       </div>

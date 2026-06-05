@@ -3,13 +3,13 @@
 <html>
 <head>
     <title>Setup Exam</title>
-	<link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <%@ include file="navbar.jsp" %>
     <div class="page-shell" style="padding-top: 2rem;">
       <div class="setup-card">
-        <h2>Exam Configuration</h2>
+        <h2 style="margin-bottom: 1.5rem;">Exam Configuration</h2>
         <form action="generateQuestion.jsp" method="POST">
             <div class="form-group">
                 <label>Enter Topic:</label>
@@ -22,18 +22,25 @@
             </div>
 
             <div class="form-group">
-                <label>Question Source:</label>
-                <div class="radio-group">
-                    <label style="font-weight: normal;">
-                        <input type="radio" name="source" value="old" checked> Use Existing
-                    </label>
-                    <label style="font-weight: normal;">
-                        <input type="radio" name="source" value="new"> Generate New (AI)
-                    </label>
-                </div>
-            </div>
+			    <label>Select Question Source</label>
+			    
+			    <div class="radio-group">
+			        <label class="option-container" style="flex: 1; text-align: center; justify-content: center;">
+			            <input type="radio" name="source" value="database" checked>
+			            <span>Internal Database</span>
+			        </label>
+			        
+			        <label class="option-container" style="flex: 1; text-align: center; justify-content: center;">
+			            <input type="radio" name="source" value="ai_generated">
+			            <span>AI Generated</span>
+			        </label>
+			    </div>
+			    <p style="font-size: 0.8rem; color: var(--ink-muted); margin-top: 0.5rem;">
+			        * Internal database uses pre-vetted questions. AI generation may take 10-15 seconds to compile.
+			    </p>
+			</div>
 
-            <button type="submit">Start Preparation</button>
+            <button type="submit" class="btn-submit">Start Preparation</button>
         </form>
       </div>
     </div>

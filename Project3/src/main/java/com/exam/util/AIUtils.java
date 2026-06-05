@@ -7,7 +7,7 @@ import java.util.regex.*;
 
 public class AIUtils {
     private static final String APIKey = "YOUR_API_KEY_HERE";
-    private static final String model = "Your Model Name Here";
+    private static final String model = "YOUR_MODEL_NAME_HERE";
     private static final String pattern = "(?i)(\\d+)\\.\\s*(.*?)\\s*\\n\\s*A\\)\\s*(.*?)\\s*\\n\\s*B\\)\\s*(.*?)\\s*\\n\\s*C\\)\\s*(.*?)\\s*\\n\\s*D\\)\\s*(.*?)\\s*\\n\\s*Answer:\\s*([A-D])";
 
     public static boolean prepareQuestions(Connection conn, String topic, String source) throws SQLException {
