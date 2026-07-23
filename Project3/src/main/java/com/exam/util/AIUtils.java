@@ -1,5 +1,4 @@
 package com.exam.util;
-
 import com.google.genai.Client;
 import java.sql.*;
 import java.util.*;
@@ -23,6 +22,15 @@ public class AIUtils {
                 tid = createNewTopic(conn, topic);
             }
             return fetchAIQuestions(conn, topic, tid) ? topic : null;
+        }
+    }
+
+    private static int getTopicId(Connection conn, String topic) throws SQLException {
+        String sql = "SELECT tid FROM topics WHERE tname ILIKE ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, "%" + topic + "%");
+            ResultSet rs = ps.executeQuery();
+            return rs.next() ? rs.getInt("tid") : -1;
         }
     }
 
@@ -55,13 +63,10 @@ public class AIUtils {
     private static boolean fetchAIQuestions(Connection conn, String topic, int tid) {
         Client client = Client.builder().apiKey(APIKey).build();
         String prompt = "Generate exactly 10 MCQs on " + topic + ". Format: 1. Q\\nA) O1\\nB) O2\\nC) O3\\nD) O4\\nAnswer: A";
-        
         try {
             String raw = client.models.generateContent(model, prompt, null).text();
             List<Question> questions = parse(raw);
-            
             if (questions.isEmpty()) return false;
-
             String sql = "INSERT INTO questions (qno, qtext, qopts, qans, tid) VALUES (?, ?, ?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 for (Question q : questions) {
@@ -85,9 +90,9 @@ public class AIUtils {
         List<Question> list = new ArrayList<>();
         Matcher m = Pattern.compile(pattern, Pattern.DOTALL).matcher(rawText.replace("\\n", "\n"));
         while (m.find()) {
-            list.add(new Question(Integer.parseInt(m.group(1)), m.group(2).trim(), 
-                List.of(m.group(3).trim(), m.group(4).trim(), m.group(5).trim(), m.group(6).trim()), 
-                m.group(7).toUpperCase()));
+            list.add(new Question(Integer.parseInt(m.group(1)), m.group(2).trim(),
+                    List.of(m.group(3).trim(), m.group(4).trim(), m.group(5).trim(), m.group(6).trim()),
+                    m.group(7).toUpperCase()));
         }
         return list;
     }
