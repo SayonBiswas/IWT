@@ -6,14 +6,14 @@ import java.util.*;
 import java.util.regex.*;
 
 public class AIUtils {
-    private static final String APIKey = "YOUR_API_KEY_HERE";
-    private static final String model = "YOUR_MODEL_NAME_HERE";
+    private static final String APIKey = System.getenv("GEMINI_API_KEY");
+    private static final String model = "gemini-2.0-flash";
     private static final String pattern = "(?i)(\\d+)\\.\\s*(.*?)\\s*\\n\\s*A\\)\\s*(.*?)\\s*\\n\\s*B\\)\\s*(.*?)\\s*\\n\\s*C\\)\\s*(.*?)\\s*\\n\\s*D\\)\\s*(.*?)\\s*\\n\\s*Answer:\\s*([A-D])";
 
     public static boolean prepareQuestions(Connection conn, String topic, String source) throws SQLException {
         int tid = getTopicId(conn, topic);
 
-        if (source.equals("old")) {
+        if (source.equals("database")) {
             // If user wants old questions, just check if they exist
             return (tid != -1); 
         } else {
