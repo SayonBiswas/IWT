@@ -7,7 +7,7 @@ import java.util.regex.*;
 
 public class AIUtils {
     private static final String APIKey = System.getenv("GEMINI_API_KEY");
-    private static final String model = "gemini-2.0-flash";
+    private static final String model = "gemini-3.0-flash";
     private static final String pattern = "(?i)(\\d+)\\.\\s*(.*?)\\s*\\n\\s*A\\)\\s*(.*?)\\s*\\n\\s*B\\)\\s*(.*?)\\s*\\n\\s*C\\)\\s*(.*?)\\s*\\n\\s*D\\)\\s*(.*?)\\s*\\n\\s*Answer:\\s*([A-D])";
 
     public static boolean prepareQuestions(Connection conn, String topic, String source) throws SQLException {
@@ -30,7 +30,7 @@ public class AIUtils {
     private static int getTopicId(Connection conn, String topic) throws SQLException {
         String sql = "SELECT tid FROM topics WHERE tname ILIKE ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, topic);
+            ps.setString(1, "%" + topic + "%");
             ResultSet rs = ps.executeQuery();
             return rs.next() ? rs.getInt("tid") : -1;
         }

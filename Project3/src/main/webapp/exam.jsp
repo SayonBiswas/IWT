@@ -37,7 +37,7 @@
                 try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
                     String sql = "SELECT q.* FROM questions q JOIN topics t ON q.tid = t.tid WHERE t.tname ILIKE ? ORDER BY RANDOM() LIMIT ?";
                     PreparedStatement ps = conn.prepareStatement(sql);
-                    ps.setString(1, topic);
+                    ps.setString(1, "%" + topic + "%");
                     ps.setInt(2, limit);
                     ResultSet rs = ps.executeQuery();
                     int count = 1;
