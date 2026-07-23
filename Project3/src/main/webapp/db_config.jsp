@@ -4,14 +4,13 @@
     // Load the PostgreSQL Driver
     Class.forName("org.postgresql.Driver");
 
-    // Tell Java to look for secure environment variables when hosted on the internet
-    String envUrl = System.getenv("JDBC_DATABASE_URL");
-    String envUser = System.getenv("JDBC_DATABASE_USERNAME");
-    String envPass = System.getenv("JDBC_DATABASE_PASSWORD");
+    // Read environment variables (set these in Koyeb's environment variables section)
+    String envUrl  = System.getenv("DB_URL");
+    String envUser = System.getenv("DB_USER");
+    String envPass = System.getenv("DB_PASSWORD");
 
-    // If those variables exist (like on Render), use them! 
-    // Otherwise, fallback to fake details so you don't expose your real password in the code.
-    String dbUrl = (envUrl != null) ? envUrl : "jdbc:postgresql://localhost:5432/Project";
+    // Use env variables when hosted, fallback to local for development
+    String dbUrl = (envUrl  != null) ? envUrl  : "jdbc:postgresql://localhost:5432/Project";
     String user  = (envUser != null) ? envUser : "postgres";
     String pass  = (envPass != null) ? envPass : "fake_local_password";
 %>
