@@ -10,29 +10,28 @@ public class AIUtils {
     private static final String model = "gemini-3.0-flash";
     private static final String pattern = "(?i)(\\d+)\\.\\s*(.*?)\\s*\\n\\s*A\\)\\s*(.*?)\\s*\\n\\s*B\\)\\s*(.*?)\\s*\\n\\s*C\\)\\s*(.*?)\\s*\\n\\s*D\\)\\s*(.*?)\\s*\\n\\s*Answer:\\s*([A-D])";
 
-    public static boolean prepareQuestions(Connection conn, String topic, String source) throws SQLException {
+    public static String prepareQuestions(Connection conn, String topic, String source) throws SQLException {
         int tid = getTopicId(conn, topic);
+        String actualTname = getTopicName(conn, tid);
 
         if (source.equals("database")) {
-            // If user wants old questions, just check if they exist
-            return (tid != -1); 
+            return (tid != -1) ? actualTname : null;
         } else {
-            // If user wants NEW questions, we clear old ones and call AI
             if (tid != -1) {
                 clearExistingQuestions(conn, tid);
             } else {
                 tid = createNewTopic(conn, topic);
             }
-            return fetchAIQuestions(conn, topic, tid);
+            return fetchAIQuestions(conn, topic, tid) ? topic : null;
         }
     }
 
-    private static int getTopicId(Connection conn, String topic) throws SQLException {
-        String sql = "SELECT tid FROM topics WHERE tname ILIKE ?";
+    private static String getTopicName(Connection conn, int tid) throws SQLException {
+        String sql = "SELECT tname FROM topics WHERE tid = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, "%" + topic + "%");
+            ps.setInt(1, tid);
             ResultSet rs = ps.executeQuery();
-            return rs.next() ? rs.getInt("tid") : -1;
+            return rs.next() ? rs.getString("tname") : null;
         }
     }
 

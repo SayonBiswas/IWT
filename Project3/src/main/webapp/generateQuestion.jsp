@@ -8,10 +8,10 @@
     if (topic != null) {
         try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
             // We pass 'source' to determine if we use AI or DB
-            boolean success = AIUtils.prepareQuestions(conn, topic, source);
-            
-            if (success) {
-                session.setAttribute("currentTopic", topic);
+            String actualTopic = AIUtils.prepareQuestions(conn, topic, source);
+
+            if (actualTopic != null) {
+                session.setAttribute("currentTopic", actualTopic);
                 session.setAttribute("totalQuestions", Integer.parseInt(count));
                 response.sendRedirect("exam.jsp");
             } else {
