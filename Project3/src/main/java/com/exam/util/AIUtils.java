@@ -9,19 +9,18 @@ public class AIUtils {
     private static final String model = "gemini-3.0-flash";
     private static final String pattern = "(?i)(\\d+)\\.\\s*(.*?)\\s*\\n\\s*A\\)\\s*(.*?)\\s*\\n\\s*B\\)\\s*(.*?)\\s*\\n\\s*C\\)\\s*(.*?)\\s*\\n\\s*D\\)\\s*(.*?)\\s*\\n\\s*Answer:\\s*([A-D])";
 
-    public static String prepareQuestions(Connection conn, String topic, String source) throws SQLException {
+    public static int prepareQuestions(Connection conn, String topic, String source) throws SQLException {
         int tid = getTopicId(conn, topic);
-        String actualTname = getTopicName(conn, tid);
 
         if (source.equals("database")) {
-            return (tid != -1) ? actualTname : null;
+            return tid; // returns -1 if not found
         } else {
             if (tid != -1) {
                 clearExistingQuestions(conn, tid);
             } else {
                 tid = createNewTopic(conn, topic);
             }
-            return fetchAIQuestions(conn, topic, tid) ? topic : null;
+            return fetchAIQuestions(conn, topic, tid) ? tid : -1;
         }
     }
 
