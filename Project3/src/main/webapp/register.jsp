@@ -1,4 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="org.mindrot.jbcrypt.BCrypt" %>
 <%@ include file="db_config.jsp" %>
 <%@ include file="navbar.jsp" %>
 <!DOCTYPE html>
@@ -22,7 +23,6 @@
             <div class="form-group">
                 <input type="email" name="email" placeholder="Email" required>
             </div>
-            
             <button type="submit" class="btn-submit">Create Account</button>
         </form>
         <div class="reg-link">
@@ -32,13 +32,17 @@
         <%
             if(request.getMethod().equalsIgnoreCase("POST")) {
                 try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
+                    String hashedPassword = BCrypt.hashpw(request.getParameter("pass"), BCrypt.gensalt(12));
+
                     PreparedStatement ps = conn.prepareStatement("INSERT INTO users(username, password, email) VALUES(?,?,?)");
                     ps.setString(1, request.getParameter("user"));
-                    ps.setString(2, request.getParameter("pass"));
+                    ps.setString(2, hashedPassword);
                     ps.setString(3, request.getParameter("email"));
                     ps.executeUpdate();
                     out.print("<script>alert('Registered!'); window.location='login.jsp';</script>");
-                } catch(Exception e) { out.print("<p class='error'>Error: " + e.getMessage() + "</p>");
+                } catch(Exception e) {
+                    e.printStackTrace();
+                    out.print("<p class='error'>Registration failed. Please try again.</p>");
                 }
             }
         %>
