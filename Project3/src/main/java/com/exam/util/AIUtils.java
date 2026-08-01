@@ -25,14 +25,20 @@ public class AIUtils {
     }
 
     private static int getTopicId(Connection conn, String topic) throws SQLException {
+        // Try exact match first
         String sql = "SELECT tid FROM topics WHERE tname ILIKE ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, topic);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getInt("tid");
+        }
+        // Then try wildcard
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, "%" + topic + "%");
             ResultSet rs = ps.executeQuery();
             return rs.next() ? rs.getInt("tid") : -1;
         }
     }
-
     private static String getTopicName(Connection conn, int tid) throws SQLException {
         String sql = "SELECT tname FROM topics WHERE tid = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
