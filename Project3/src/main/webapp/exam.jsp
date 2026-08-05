@@ -4,14 +4,12 @@
 <%
     Object topicObj = session.getAttribute("currentTopic");
     Object limitObj = session.getAttribute("totalQuestions");
-
     if (topicObj == null || limitObj == null) {
         response.sendRedirect("setup.jsp");
-        return; 
+        return;
     }
-
     String topic = (String) topicObj;
-    int limit = (Integer) limitObj; 
+    int limit = (Integer) limitObj;
 %>
 <!DOCTYPE html>
 <html>
@@ -19,21 +17,21 @@
     <meta charset="UTF-8">
     <title>Exam: <%= topic %></title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
-<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>	
+<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
     <%@ include file="navbar.jsp" %>
-    
+
     <div class="page-shell">
       <div class="setup-card">
-        
+
         <h2 style="color: var(--amber); text-align: center;">Examination in Progress</h2>
         <p style="text-align: center; margin-bottom: 2rem; font-size: 1.1rem;">
-            Topic: <strong style="color: var(--ink);"><%= topic %></strong> | 
+            Topic: <strong style="color: var(--ink);"><%= topic %></strong> |
             Questions: <strong style="color: var(--ink);"><%= limit %></strong>
         </p>
-
         <form id="examForm" action="result.jsp" method="POST">
+            <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
             <%
                 try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
                     Integer tid = (Integer) session.getAttribute("currentTid");

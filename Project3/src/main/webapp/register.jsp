@@ -15,6 +15,7 @@
       <div class="card">
         <h2 style="margin-bottom: 1.5rem; text-align: center;">Register</h2>
         <form method="POST">
+            <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
             <div class="form-group">
                 <input type="text" name="user" placeholder="Username" required>
             </div>
@@ -29,12 +30,10 @@
         <div class="reg-link">
             Already have an account? <a href="login.jsp">Login</a>
         </div>
-
         <%
             if(request.getMethod().equalsIgnoreCase("POST")) {
                 try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
                     String hashedPassword = BCrypt.hashpw(request.getParameter("pass"), BCrypt.gensalt(12));
-
                     PreparedStatement ps = conn.prepareStatement("INSERT INTO users(username, password, email) VALUES(?,?,?)");
                     ps.setString(1, request.getParameter("user"));
                     ps.setString(2, hashedPassword);

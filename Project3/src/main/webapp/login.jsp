@@ -17,6 +17,7 @@
         <h2 style="margin-bottom: 1.5rem; text-align: center;">Exam Login</h2>
 
         <form method="POST">
+            <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
             <div class="form-group">
                 <label>Username</label>
                 <input type="text" name="user" placeholder="Username" required>
