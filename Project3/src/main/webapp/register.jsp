@@ -7,7 +7,8 @@
 <head>
 <meta charset="UTF-8">
 <title>Register</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
+<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
     <div class="page-shell">

@@ -11,7 +11,8 @@
 <html>
 <head>
     <title>Student Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
+<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
     <style>
         /* 1. Strictly forces the layout blocks to stay side-by-side */
         .box-container {

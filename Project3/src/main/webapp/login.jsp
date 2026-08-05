@@ -6,7 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Login - Online Exam</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
+<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
     <%@ include file="navbar.jsp" %>
