@@ -107,3 +107,32 @@
     }
   });
 })();
+
+// ── Theme Toggle Logic ──────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  const html = document.documentElement;
+  const themeBtn = document.getElementById('themeBtn');
+  const savedTheme = localStorage.getItem('eh-theme') || 'dark';
+
+  function applyTheme(theme) {
+    if (theme === 'light') {
+      html.setAttribute('data-theme', 'light');
+      if (themeBtn) themeBtn.textContent = '☀️';
+    } else {
+      html.removeAttribute('data-theme');
+      if (themeBtn) themeBtn.textContent = '🌙';
+    }
+    localStorage.setItem('eh-theme', theme);
+  }
+
+  // 1. Apply the saved theme immediately on load
+  applyTheme(savedTheme);
+
+  // 2. Attach the click listener to the button
+  if (themeBtn) {
+    themeBtn.addEventListener('click', function () {
+      const currentTheme = localStorage.getItem('eh-theme') || 'dark';
+      applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+    });
+  }
+});

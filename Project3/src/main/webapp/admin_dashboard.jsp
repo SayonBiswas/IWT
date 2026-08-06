@@ -30,7 +30,8 @@
 
         } catch (Exception e) {
             getServletContext().log("[admin_dashboard.jsp] Failed to load dashboard data", e);
-            out.print("<div class='error'>Could not load dashboard data. Check server logs.</div>");
+            // FIXED: Appending the error to the StringBuilder instead of using the unavailable 'out' object
+            html.append("<tr><td colspan='10'><div class='error'>Could not load dashboard data. Check server logs.</div></td></tr>");
         }
 
         html.append("</tbody></table></div></div>");
@@ -50,8 +51,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Command Center</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
+    <title>ExamHub - Admin Dashboard</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
     <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
@@ -59,23 +60,27 @@
 
     <div class="page-shell" style="padding-top: 2rem;">
       <div class="card" style="width: 100%; max-width: 1000px;">
-        <h1 style="margin-bottom: 1rem; color: var(--amber);">Admin Command Center</h1>
-        <p>Logged in as: <strong style="color: var(--amber);"><%= session.getAttribute("username") %></strong> (Administrator)</p>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem;">
+            <div>
+                <h2 style="margin: 0 0 0.5rem 0;">Admin Control Center</h2>
+                <p style="margin:0; font-size: 13px; color: var(--ink-muted);">Logged in as: <strong style="color: var(--amber);"><%= session.getAttribute("username") %></strong></p>
+            </div>
+        </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
             <div class="box">
                 <h3 style="color: var(--amber); margin-bottom: 0.5rem;">System Analytics</h3>
-                <p>Monitor platform statistics, total exams created, and overall user performance ratios globally.</p>
+                <p style="margin-bottom: 1.5rem; color: var(--ink-soft);">Monitor platform statistics, total exams created, and overall user performance ratios globally.</p>
                 <a href="#" class="btn-submit" style="display:inline-block; text-align:center; text-decoration:none;">View Metrics</a>
             </div>
             <div class="box">
                 <h3 style="color: var(--amber); margin-bottom: 0.5rem;">Question Database</h3>
-                <p>Review, modify, or manually purge AI-generated multi-choice layout elements inside table banks.</p>
+                <p style="margin-bottom: 1.5rem; color: var(--ink-soft);">Review, modify, or manually purge AI-generated questions inside table banks.</p>
                 <a href="#" class="btn-submit" style="display:inline-block; text-align:center; text-decoration:none;">Manage Bank</a>
             </div>
         </div>
 
-        <div style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+        <div style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;">
             <h2 style="color: var(--ink);">Database Overview</h2>
 
             <%
@@ -84,7 +89,7 @@
                     Class.forName("org.postgresql.Driver");
                     conn = DriverManager.getConnection(dbUrl, user, pass);
 
-                    // password column intentionally excluded from users query
+                    // Password column intentionally excluded from users query
                     out.print(renderHtmlTable(conn, "SELECT username, email, role FROM users ORDER BY username", "System Users"));
                     out.print(renderHtmlTable(conn, "SELECT * FROM topics ORDER BY tid", "Exam Topics"));
                     out.print(renderHtmlTable(conn, "SELECT qid, qno, qtext, qans, tid FROM questions ORDER BY tid, qno", "Question Bank Master List"));
