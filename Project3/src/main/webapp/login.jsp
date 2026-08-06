@@ -62,7 +62,7 @@
                         out.print("<p class='error' style='margin-top: 1rem;'>Invalid Username or Password!</p>");
                     }
                 } catch(Exception e) {
-                    e.printStackTrace();
+                    getServletContext().log("[login.jsp] Login error", e);
                     out.print("<p class='error' style='margin-top: 1rem;'>Login failed. Please try again.</p>");
                 }
             }

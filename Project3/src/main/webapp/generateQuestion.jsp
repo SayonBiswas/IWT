@@ -1,6 +1,12 @@
 <%@ page import="com.exam.util.AIUtils, java.sql.*" %>
 <%@ include file="db_config.jsp" %>
 <%
+    if (session.getAttribute("username") == null) {
+        response.sendRedirect("login.jsp");
+        return;
+    }
+%>
+<%
     String topic = request.getParameter("topic");
     String count = request.getParameter("qCount");
     String source = request.getParameter("source");
@@ -17,8 +23,8 @@
                 out.print("<script>alert('No existing questions found for this topic. Please select New Questions.'); window.location='setup.jsp';</script>");
             }
         } catch(Exception e) {
-            e.printStackTrace();
-            out.print("Error: " + e.getMessage());
+            getServletContext().log("[generateQuestion.jsp] Failed to generate question", e);
+            out.print("<p class='error'>Could not generate question. Please try again.</p>");
         }
     }
 %>

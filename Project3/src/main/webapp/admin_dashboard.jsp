@@ -29,8 +29,8 @@
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
-            html.append("<tr><td colspan='100%' class='error'>Could not load table data.</td></tr>");
+            getServletContext().log("[admin_dashboard.jsp] Failed to load dashboard data", e);
+            out.print("<div class='error'>Could not load dashboard data. Check server logs.</div>");
         }
 
         html.append("</tbody></table></div></div>");
@@ -91,7 +91,7 @@
                     out.print(renderHtmlTable(conn, "SELECT * FROM user_results ORDER BY test_date DESC", "Student Test Records"));
 
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    getServletContext().log("[admin_dashboard.jsp] Database connection failed", e);
                     out.print("<div class='error'>Failed to connect to the database. Check server logs.</div>");
                 } finally {
                     if (conn != null) { try { conn.close(); } catch (SQLException ignore) {} }

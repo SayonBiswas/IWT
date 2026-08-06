@@ -55,8 +55,14 @@
             ins.setInt(3, score);
             ins.setInt(4, (totalRequested != null) ? totalRequested : questionsCounted);
             ins.executeUpdate();
-        } catch (Exception ie) { out.print("<div class='error'>Warning: could not save result: " + ie.getMessage() + "</div>"); }
-    } catch (Exception e) { out.print("<div class='error'>Error calculating score: " + e.getMessage() + "</div>"); e.printStackTrace(); }
+        } catch (Exception ie) {
+            getServletContext().log("[result.jsp] Could not save result", ie);
+            out.print("<div class='error'>Could not save your result. Please contact support.</div>");
+        }
+    } catch (Exception e) {
+        getServletContext().log("[result.jsp] Score calculation failed", e);
+        out.print("<div class='error'>Could not calculate your score. Please try again.</div>");
+    }
 %>
 <!DOCTYPE html>
 <html>

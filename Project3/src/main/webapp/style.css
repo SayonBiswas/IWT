@@ -228,6 +228,16 @@ code {
   border-color: var(--border-soft);
 }
 
+
+/* ── 7b. REGISTER CARD ───────────────────────────────────────── */
+.register-card { max-width: 420px; margin-inline: auto; }
+
+.register-title {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+
 /* ── 8. STAT TILES ───────────────────────────────────────────── */
 .stat-tile {
   background: var(--bg-inset);
@@ -302,6 +312,58 @@ textarea:focus {
 
 select { cursor: pointer; appearance: none; }
 textarea { resize: vertical; min-height: 110px; }
+
+
+/* ── 9b. PASSWORD STRENGTH METER ─────────────────────────────── */
+.pwd-meter {
+  margin-top: 0.6rem;
+}
+
+.pwd-bar-track {
+  height: 4px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 0.4rem;
+}
+
+.pwd-bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 99px;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.pwd-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.pwd-rules {
+  list-style: none;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pwd-rules li {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.2s ease;
+}
+
+.pwd-rule-icon {
+  font-size: 0.7rem;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
 
 /* ── 10. BUTTONS ─────────────────────────────────────────────── */
 .btn-submit,
