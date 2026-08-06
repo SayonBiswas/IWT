@@ -2,35 +2,42 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="org.mindrot.jbcrypt.BCrypt" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Online Exam</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamHub - Sign In</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
-<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
+    <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
     <%@ include file="navbar.jsp" %>
 
     <div class="page-shell">
       <div class="login-card">
-        <h2 style="margin-bottom: 1.5rem; text-align: center;">Exam Login</h2>
+
+        <!-- Unified Branding Header -->
+        <div style="text-align:center; margin-bottom: 1.5rem;">
+            <h2 style="margin-bottom: 0.5rem; text-align: center;">ExamHub</h2>
+            <p style="text-align:center; font-size:0.85rem; color:var(--ink-muted); margin-bottom:1.5rem;">One login for Students, Teachers &amp; Admins</p>
+        </div>
 
         <form method="POST">
             <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="user" placeholder="Username" required>
+                <label class="field-label">Username</label>
+                <input type="text" name="user" class="field" placeholder="Username" required>
             </div>
             <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="pass" placeholder="Password" required>
+                <label class="field-label">Password</label>
+                <input type="password" name="pass" class="field" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn-submit">Login</button>
+            <button type="submit" class="btn-submit">Sign In</button>
         </form>
 
         <div class="reg-link">
-            Don't have an account? <a href="register.jsp">Register here</a>
+            <span style="font-size:11px; color:var(--ink-muted);">Don't have an account? </span>
+            <a href="register.jsp" class="link">Register here</a>
         </div>
 
         <%

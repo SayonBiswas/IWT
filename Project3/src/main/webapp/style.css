@@ -696,9 +696,20 @@ tbody tr:hover td { background: var(--bg-hover); }
   .box-container .box { flex: 1 1 100%; }
   .navbar__links a { padding: 0.35rem 0.6rem; font-size: 0.8rem; }
   .segment { font-size: 0.8rem; padding: 0.6rem 0.5rem; }
+  .navbar__inner { padding-inline: 1rem; }
+  .card { max-width: 100%; }
+  .page-shell { padding: 1rem; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
 }
 
 @media (max-width: 480px) {
   .login-card { max-width: 100%; }
   th, td { padding: 0.6rem 0.75rem; }
+}
+
+@media (max-width: 360px) {
+  .navbar__links a { padding: 0.3rem 0.4rem; font-size: 0.72rem; }
+  .btn-submit, .btn-primary { padding: 0.65rem 1rem; font-size: 0.85rem; }
+  .login-card, .register-card { padding: 1.25rem 1rem; }
 }

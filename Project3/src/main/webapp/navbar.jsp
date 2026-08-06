@@ -9,21 +9,30 @@
 
 <nav class="navbar">
   <div class="navbar__inner">
-    <a href="dashboard.jsp" class="navbar__logo">
+    <a href="dashboard.jsp" class="navbar__logo" style="text-decoration: none;">
       <span>📋</span> ExamHub
+      <% if (isAdmin) { %>
+        <span class="badge badge-orange" style="margin-left:0.5rem; transform: translateY(-2px);">Admin</span>
+      <% } %>
     </a>
 
     <ul class="navbar__links">
       <% if (session.getAttribute("username") != null) { %>
+
+        <%-- Admin Navigation --%>
         <% if (isAdmin) { %>
-          <li><a href="admin_dashboard.jsp">Overview</a></li>
+          <li><a href="admin_dashboard.jsp" class="<%= currentURI.endsWith("admin_dashboard.jsp") ? "active" : "" %>">Overview</a></li>
           <li><a href="admin_dashboard.jsp">Database</a></li>
           <li><a href="admin_dashboard.jsp">Users</a></li>
+
+        <%-- Student Navigation --%>
         <% } else { %>
-          <li><a href="dashboard.jsp">Dashboard</a></li>
-          <li><a href="setup.jsp">Take Test</a></li>
-          <li><a href="exam_history.jsp">History</a></li>
+          <li><a href="dashboard.jsp" class="<%= currentURI.endsWith("dashboard.jsp") ? "active" : "" %>">Dashboard</a></li>
+          <li><a href="setup.jsp" class="<%= currentURI.endsWith("setup.jsp") || currentURI.endsWith("exam.jsp") ? "active" : "" %>">Exams</a></li>
+          <li><a href="notes.jsp" class="<%= currentURI.endsWith("notes.jsp") ? "active" : "" %>">Notes</a></li>
+          <li><a href="pdf_tools.jsp" class="<%= currentURI.endsWith("pdf_tools.jsp") ? "active" : "" %>">PDF Tools</a></li>
         <% } %>
+
         <li>
           <a href="logout.jsp" class="nav-danger">
             Logout <%= session.getAttribute("username") %>

@@ -1,9 +1,10 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ include file="db_config.jsp" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Exam History</title>
 <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
 <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
@@ -39,7 +40,7 @@
                                 <tr>
                                     <td><%= rs.getTimestamp("test_date") %></td>
                                     <td><strong><%= rs.getString("topic") %></strong></td>
-                                    <td style="font-weight: 600; color: #38bdf8;"><%= s %> / <%= t %></td>
+                                    <td style="font-weight: 600; color: var(--sky);"><%= s %> / <%= t %></td>
                                     <td><%= perf %></td>
                                 </tr>
                         <%

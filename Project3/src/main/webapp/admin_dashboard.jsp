@@ -60,7 +60,7 @@
     <div class="page-shell" style="padding-top: 2rem;">
       <div class="card" style="width: 100%; max-width: 1000px;">
         <h1 style="margin-bottom: 1rem; color: var(--amber);">Admin Command Center</h1>
-        <p>Logged in as: <strong style="color: var(--amber-glow);"><%= session.getAttribute("username") %></strong> (Administrator)</p>
+        <p>Logged in as: <strong style="color: var(--amber);"><%= session.getAttribute("username") %></strong> (Administrator)</p>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
             <div class="box">

@@ -3,17 +3,23 @@
 <%@ include file="db_config.jsp" %>
 <%@ include file="navbar.jsp" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamHub - Register</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
     <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
     <div class="page-shell">
       <div class="card register-card">
-        <h2 class="register-title">Register</h2>
+
+        <div style="text-align:center; margin-bottom: 1.5rem;">
+            <h2 style="margin-bottom: 0.5rem; text-align: center;">ExamHub</h2>
+            <p style="text-align:center; font-size:0.85rem; color:var(--ink-muted); margin-bottom:1.5rem;">Create your account</p>
+        </div>
+
         <form method="POST">
             <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
             <div class="form-group">

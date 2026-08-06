@@ -65,12 +65,13 @@
     }
 %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Exam Result - <%= topic %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamHub - Exam Result - <%= topic %></title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
-<script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
+    <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
@@ -78,8 +79,9 @@
       <div class="result-container">
         <h1 style="margin-bottom: 1rem;">Examination Complete!</h1>
         <p style="margin-bottom: 1.5rem;">Topic: <strong><%= topic %></strong></p>
-        
-        <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: #38bdf8;">
+
+        <!-- Replaced hardcoded #38bdf8 with var(--sky) -->
+        <h2 style="font-size: 2.2rem; margin-bottom: 1rem; color: var(--sky);">
             Score: <%= score %> / <%= (totalRequested != null ? totalRequested : questionsCounted) %>
         </h2>
         <p>Congratulations, <strong><%= session.getAttribute("username") %></strong>! Your results have been recorded.</p>
@@ -98,7 +100,7 @@
                         String userA = (String) m.get("user");
                         String correct = (String) m.get("qans");
                         String userText = "-"; String correctText = "-";
-                        
+
                         if (userA != null) {
                             int ui = "ABCD".indexOf(userA.toUpperCase());
                             if (ui >= 0 && ui < opts.length) userText = opts[ui];
@@ -113,7 +115,8 @@
                     <td><%= qnum++ %></td>
                     <td><strong><%= m.get("qtext") %></strong></td>
                     <td><%= userText %></td>
-                    <td style="color: #34d399; font-weight: 500;"><%= correctText %></td>
+                    <!-- Replaced hardcoded #34d399 with var(--green) -->
+                    <td style="color: var(--green); font-weight: 500;"><%= correctText %></td>
                     <td style="font-weight: 600;"><%= (ok ? "✅ Correct" : "❌ Wrong") %></td>
                 </tr>
                 <% } %>

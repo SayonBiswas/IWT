@@ -52,3 +52,58 @@
     });
   });
 })();
+
+// ── PDF Merger Logic (pdf_tools.jsp only) ──────────────────────────
+(function () {
+  const pdfForm = document.getElementById('pdfMergeForm');
+  const pdfUploader = document.getElementById('pdfUploader');
+
+  if (!pdfForm || !pdfUploader) return; // not on the PDF tools page
+
+  pdfForm.addEventListener('submit', async function (e) {
+    e.preventDefault(); // Stop the form from refreshing the page
+
+    const files = pdfUploader.files;
+    if (files.length === 0) {
+      alert("Please select at least one PDF file.");
+      return;
+    }
+
+    try {
+      // 1. Create a new empty PDF document
+      const { PDFDocument } = PDFLib;
+      const mergedPdf = await PDFDocument.create();
+
+      // 2. Loop through all uploaded files
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        // Read file as ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+
+        // Load the uploaded PDF
+        const pdf = await PDFDocument.load(arrayBuffer);
+
+        // Copy all pages from uploaded PDF into the new Merged PDF
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+      }
+
+      // 3. Save the merged PDF as a byte array
+      const mergedPdfFile = await mergedPdf.save();
+
+      // 4. Trigger download in the browser
+      const blob = new Blob([mergedPdfFile], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Merged_ExamHub_Notes.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+    } catch (error) {
+      console.error("Error merging PDFs:", error);
+      alert("An error occurred while merging the PDFs. Ensure they are valid PDF files.");
+    }
+  });
+})();
