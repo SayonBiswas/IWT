@@ -16,7 +16,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Exam: <%= topic %></title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
 <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
