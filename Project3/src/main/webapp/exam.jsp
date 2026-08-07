@@ -8,6 +8,14 @@
         response.sendRedirect("setup.jsp");
         return;
     }
+
+    // ── Fix: guard against invalid tid in session ──
+    Integer tid = (Integer) session.getAttribute("currentTid");
+    if (tid == null || tid == -1) {
+        response.sendRedirect("setup.jsp");
+        return;
+    }
+
     String topic = (String) topicObj;
     int limit = (Integer) limitObj;
 %>
@@ -34,7 +42,6 @@
             <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
             <%
                 try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
-                    Integer tid = (Integer) session.getAttribute("currentTid");
                     String sql = "SELECT * FROM questions WHERE tid = ? ORDER BY RANDOM() LIMIT ?";
                     PreparedStatement ps = conn.prepareStatement(sql);
                     ps.setInt(1, tid);
