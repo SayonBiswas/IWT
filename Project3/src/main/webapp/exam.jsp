@@ -23,12 +23,45 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Exam: <%= topic %></title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
 <script type="module" src="${pageContext.request.contextPath}/static/main.js"></script>
 </head>
 <body>
     <%@ include file="navbar.jsp" %>
+    <!-- Loading overlay — visible instantly, hidden once page is ready -->
+    <div id="loadingOverlay" style="
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: var(--bg-page);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.5rem;
+    ">
+        <div style="
+            width: 48px; height: 48px;
+            border: 4px solid var(--border);
+            border-top-color: var(--accent-light);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        "></div>
+        <div style="text-align: center;">
+            <p style="font-size: 1rem; font-weight: 600; color: var(--ink); margin: 0 0 0.4rem 0;">
+                Preparing your exam…
+            </p>
+            <p style="font-size: 0.85rem; color: var(--ink-muted); margin: 0;">
+                Fetching questions for <strong style="color: var(--accent-light);"><%= topic %></strong>
+            </p>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
 
     <div class="page-shell">
       <div class="setup-card">
@@ -84,5 +117,16 @@
         </form>
       </div>
     </div>
+    <script>
+        // Hide the overlay once the full page has loaded
+        window.addEventListener('load', function () {
+            var overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.style.transition = 'opacity 0.3s ease';
+                overlay.style.opacity = '0';
+                setTimeout(function () { overlay.remove(); }, 300);
+            }
+        });
+    </script>
 </body>
 </html>

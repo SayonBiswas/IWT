@@ -12,8 +12,15 @@
     <a href="dashboard.jsp" class="navbar__logo" style="text-decoration: none;">
       <span>📋</span> ExamHub
       <% if (isAdmin) { %>
-        <span class="badge badge-orange" style="margin-left:0.5rem; transform: translateY(-2px);">Admin</span>
-      <% } %>
+        <li><a href="admin_dashboard.jsp" class="<%= currentURI.endsWith("admin_dashboard.jsp") ? "active" : "" %>">Overview</a></li>
+        <li><a href="admin_dashboard.jsp">Database</a></li>
+        <li>
+          <a href="admin_dashboard.jsp">
+            AI Queue <span class="badge badge-red" style="margin-left: 0.2rem;">3</span>
+          </a>
+        </li>
+        <li><a href="admin_dashboard.jsp">Users</a></li>
+       <% } %>
     </a>
 
     <ul class="navbar__links">

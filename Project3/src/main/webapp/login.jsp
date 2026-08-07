@@ -23,14 +23,14 @@
         </div>
 
         <form method="POST">
-            <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
+            <input type="hidden" name="_csrf" value='<%= session.getAttribute("_csrf") %>'>
             <div class="form-group">
                 <label class="field-label">Username</label>
                 <input type="text" name="user" class="field" placeholder="Username" required>
             </div>
             <div class="form-group">
                 <label class="field-label">Password</label>
-                <input type="password" name="pass" class="field" placeholder="••••••••" required>
+                <input type="password" name="pass" class="field" placeholder="Password" required>
             </div>
             <button type="submit" class="btn-submit">Sign In</button>
         </form>

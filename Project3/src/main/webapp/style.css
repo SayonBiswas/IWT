@@ -47,33 +47,34 @@
 
 /* ── 2. LIGHT MODE OVERRIDES ─────────────────────────────────── */
 [data-theme="light"] {
-  --bg-page:      #f8fafc;
-  --bg-card:      #ffffff;
-  --bg-inset:     #f1f5f9;
-  --bg-hover:     rgba(0,0,0,0.03);
-  --border:       rgba(0,0,0,0.09);
-  --border-soft:  rgba(0,0,0,0.05);
-  --ink:          #0f172a;
-  --ink-soft:     #475569;
-  --ink-muted:    #94a3b8;
-  --accent:       #6d28d9;
-  --accent-light: #7c3aed;
-  --accent-glow:  rgba(109,40,217,0.10);
-  --green:        #16a34a;
-  --green-bg:     rgba(22,163,74,0.09);
-  --green-border: rgba(22,163,74,0.2);
-  --red:          #dc2626;
-  --red-bg:       rgba(220,38,38,0.08);
-  --red-border:   rgba(220,38,38,0.2);
-  --amber:        #d97706;
-  --amber-bg:     rgba(217,119,6,0.09);
-  --amber-border: rgba(217,119,6,0.2);
-  --purple:       #7c3aed;
-  --purple-bg:    rgba(124,58,237,0.09);
-  --purple-border:rgba(124,58,237,0.2);
-  --sky:          #0284c7;
-  --sky-bg:       rgba(2,132,199,0.09);
-  --sky-border:   rgba(2,132,199,0.2);
+  --bg-page:       #f5ede0;
+  --bg-card:       #fdf6ee;
+  --bg-inset:      #ede0cc;
+  --bg-hover:      rgba(0,0,0,0.04);
+  --border:        rgba(120,80,40,0.15);
+  --border-soft:   rgba(120,80,40,0.08);
+  --border-focus:  #92400e;
+  --ink:           #1c1008;
+  --ink-soft:      #57350f;
+  --ink-muted:     #9a7252;
+  --accent:        #92400e;
+  --accent-light:  #b45309;
+  --accent-glow:   rgba(146,64,14,0.12);
+  --green:         #15803d;
+  --green-bg:      rgba(21,128,61,0.10);
+  --green-border:  rgba(21,128,61,0.22);
+  --red:           #b91c1c;
+  --red-bg:        rgba(185,28,28,0.09);
+  --red-border:    rgba(185,28,28,0.22);
+  --amber:         #b45309;
+  --amber-bg:      rgba(180,83,9,0.10);
+  --amber-border:  rgba(180,83,9,0.22);
+  --purple:        #7c3aed;
+  --purple-bg:     rgba(124,58,237,0.09);
+  --purple-border: rgba(124,58,237,0.2);
+  --sky:           #0369a1;
+  --sky-bg:        rgba(3,105,161,0.09);
+  --sky-border:    rgba(3,105,161,0.2);
 }
 
 /* ── 3. RESET & BASE ─────────────────────────────────────────── */

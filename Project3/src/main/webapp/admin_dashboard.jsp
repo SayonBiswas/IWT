@@ -67,16 +67,22 @@
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-            <div class="box">
-                <h3 style="color: var(--amber); margin-bottom: 0.5rem;">System Analytics</h3>
-                <p style="margin-bottom: 1.5rem; color: var(--ink-soft);">Monitor platform statistics, total exams created, and overall user performance ratios globally.</p>
-                <a href="#" class="btn-submit" style="display:inline-block; text-align:center; text-decoration:none;">View Metrics</a>
+        <div class="grid-4" style="margin-bottom: 2rem;">
+            <div class="stat-tile">
+                <div class="stat-tile__val" style="color: var(--ink);">—</div>
+                <div class="stat-tile__lbl">Total Users</div>
             </div>
-            <div class="box">
-                <h3 style="color: var(--amber); margin-bottom: 0.5rem;">Question Database</h3>
-                <p style="margin-bottom: 1.5rem; color: var(--ink-soft);">Review, modify, or manually purge AI-generated questions inside table banks.</p>
-                <a href="#" class="btn-submit" style="display:inline-block; text-align:center; text-decoration:none;">Manage Bank</a>
+            <div class="stat-tile">
+                <div class="stat-tile__val" style="color: var(--purple);">—</div>
+                <div class="stat-tile__lbl">AI API Requests</div>
+            </div>
+            <div class="stat-tile">
+                <div class="stat-tile__val" style="color: var(--green);">—</div>
+                <div class="stat-tile__lbl">Questions in DB</div>
+            </div>
+            <div class="stat-tile">
+                <div class="stat-tile__val" style="color: var(--amber);">—</div>
+                <div class="stat-tile__lbl">Global Avg Score</div>
             </div>
         </div>
 
