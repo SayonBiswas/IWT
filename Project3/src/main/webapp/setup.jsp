@@ -48,12 +48,12 @@
                 <!-- DATABASE: dropdown of real topic names from DB -->
                 <div class="form-group" id="db-topic-group">
                     <label>Select Topic</label>
-                    <select name="topic_db">
+                    <select name="topic" id="topic_db">
                         <option value="">-- Select a topic --</option>
                         <%
                             try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
                                 PreparedStatement ps = conn.prepareStatement(
-                                    "SELECT tname FROM topics ORDER BY tname");
+                                    "SELECT tname FROM topics ORDER BY tname DESC");
                                 ResultSet rs = ps.executeQuery();
                                 while (rs.next()) {
                         %>
@@ -72,9 +72,9 @@
                 <!-- AI: free-text input, hidden by default -->
                 <div class="form-group" id="ai-topic-group" style="display:none;">
                     <label>Exam Topic</label>
-                    <input type="text" name="topic_ai"
+                    <input type="text" name="topic" id="topic_ai"
                            placeholder="e.g., C++, Java, Python..."
-                           maxlength="100">
+                           maxlength="100" disabled>
                 </div>
 
                 <!-- NUMBER OF QUESTIONS -->
@@ -91,45 +91,41 @@
     </div>
 
     <script>
-        (function () {
-            const radios  = document.querySelectorAll('input[name="source"]');
-            const dbGroup = document.getElementById('db-topic-group');
-            const aiGroup = document.getElementById('ai-topic-group');
-            const form    = document.getElementById('setupForm');
+    (function () {
+        const radios  = document.querySelectorAll('input[name="source"]');
+        const dbGroup = document.getElementById('db-topic-group');
+        const aiGroup = document.getElementById('ai-topic-group');
+        const form    = document.getElementById('setupForm');
+        const dbSel   = document.getElementById('topic_db');
+        const aiInp   = document.getElementById('topic_ai');
 
-            function toggleTopicInput() {
-                const isDB = document.querySelector('input[name="source"]:checked').value === 'database';
-                dbGroup.style.display = isDB ? 'block' : 'none';
-                aiGroup.style.display = isDB ? 'none'  : 'block';
+        function toggleTopicInput() {
+            const isDB = document.querySelector('input[name="source"]:checked').value === 'database';
+            dbGroup.style.display = isDB ? 'block' : 'none';
+            aiGroup.style.display = isDB ? 'none'  : 'block';
+            dbSel.disabled = !isDB;   // only the visible one submits
+            aiInp.disabled =  isDB;
+        }
 
-                // toggle required so browser validation works correctly
-                document.querySelector('select[name="topic_db"]').required = isDB;
-                document.querySelector('input[name="topic_ai"]').required   = !isDB;
+        radios.forEach(r => r.addEventListener('change', toggleTopicInput));
+        toggleTopicInput();
+
+        form.addEventListener('submit', function (e) {
+            const isDB = document.querySelector('input[name="source"]:checked').value === 'database';
+            const val  = isDB ? dbSel.value : aiInp.value.trim();
+            if (!val) {
+                e.preventDefault();
+                alert(isDB ? 'Please select a topic.' : 'Please enter a topic.');
             }
-
-            radios.forEach(r => r.addEventListener('change', toggleTopicInput));
-            toggleTopicInput(); // run on page load
-
-            // Merge the active topic field into a single "topic" param before submit
-            form.addEventListener('submit', function (e) {
-                const isDB = document.querySelector('input[name="source"]:checked').value === 'database';
-                const val  = isDB
-                    ? document.querySelector('select[name="topic_db"]').value
-                    : document.querySelector('input[name="topic_ai"]').value.trim();
-
-                if (!val) {
-                    e.preventDefault();
-                    alert(isDB ? 'Please select a topic.' : 'Please enter a topic.');
-                    return;
-                }
-
-                const hidden  = document.createElement('input');
-                hidden.type   = 'hidden';
-                hidden.name   = 'topic';
-                hidden.value  = val;
-                form.appendChild(hidden);
-            });
-        })();
+            // Show loading state on button
+            const btn = document.querySelector('button[type="submit"]');
+            const isAI = document.querySelector('input[name="source"]:checked').value === 'ai_generated';
+            if (isAI) {
+                btn.disabled = true;
+                btn.textContent = '⏳ Generating AI Questions... Please wait';
+            }
+        });
+    })();
     </script>
 </body>
 </html>

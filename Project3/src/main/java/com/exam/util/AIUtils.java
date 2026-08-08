@@ -10,21 +10,23 @@ public class AIUtils {
 
     private static final Logger logger = Logger.getLogger(AIUtils.class.getName());
     private static final String APIKey = System.getenv("GEMINI_API_KEY");
+    private static final String model  = "gemini-3-flash-preview";
 
-    // ── Fix 1: correct model name ──────────────────────────────────────────
-    private static final String model = "gemini-3-flash-preview";
+    // ── Static client — created once, reused on every request ─────────────
+    private static final Client client = Client.builder()
+            .apiKey(System.getenv("GEMINI_API_KEY"))
+            .build();
 
-    // ── Fix 2: relaxed regex ───────────────────────────────────────────────
-    // Handles: "A)" or "A." delimiters, "**Answer: A**" bold, trailing text after answer
-    private static final String pattern =
-            "(?i)(\\d+)[.)\\s]+([^\\n]+?)\\s*\\n" +          // question number + text
-                    "\\s*A[.)]+\\s*([^\\n]+?)\\s*\\n" +               // option A
-                    "\\s*B[.)]+\\s*([^\\n]+?)\\s*\\n" +               // option B
-                    "\\s*C[.)]+\\s*([^\\n]+?)\\s*\\n" +               // option C
-                    "\\s*D[.)]+\\s*([^\\n]+?)\\s*\\n" +               // option D
-                    "\\s*\\**\\s*Answer[:\\s*]+\\**\\s*([A-D])";      // Answer: A (with optional ** markdown)
+    // ── Regex WITHOUT DOTALL — no catastrophic backtracking ───────────────
+    private static final Pattern QUESTION_PATTERN = Pattern.compile(
+            "(?im)^\\s*(\\d+)[.)]+\\s*(.+)\\r?\\n" +   // question number + text
+                    "\\s*A[.)]+\\s*(.+)\\r?\\n" +               // option A
+                    "\\s*B[.)]+\\s*(.+)\\r?\\n" +               // option B
+                    "\\s*C[.)]+\\s*(.+)\\r?\\n" +               // option C
+                    "\\s*D[.)]+\\s*(.+)\\r?\\n" +               // option D
+                    "\\s*(?:\\*{0,2})\\s*Answer\\s*[:\\s]+(?:\\*{0,2})\\s*([A-D])"  // Answer: A
+    );
 
-    // ── Fix 3: better prompt — strips markdown from Gemini response ────────
     private static final String PROMPT_TEMPLATE =
             "Generate exactly 10 multiple choice questions on the topic: %s.\n" +
                     "Use ONLY this plain text format with no markdown, no bold, no asterisks:\n\n" +
@@ -41,7 +43,7 @@ public class AIUtils {
         int tid = getTopicId(conn, topic);
 
         if (source.equals("database")) {
-            return tid;  // -1 if topic not found in DB
+            return tid;
         } else {
             if (tid != -1) {
                 clearExistingQuestions(conn, tid);
@@ -55,13 +57,11 @@ public class AIUtils {
     // ── DB helpers ─────────────────────────────────────────────────────────
     private static int getTopicId(Connection conn, String topic) throws SQLException {
         String sql = "SELECT tid FROM topics WHERE tname ILIKE ?";
-        // exact match first
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, topic);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) return rs.getInt("tid");
         }
-        // wildcard fallback
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, "%" + topic + "%");
             ResultSet rs = ps.executeQuery();
@@ -88,16 +88,15 @@ public class AIUtils {
     // ── AI fetch ───────────────────────────────────────────────────────────
     private static boolean fetchAIQuestions(Connection conn, String topic, int tid) {
         try {
-            Client client = Client.builder().apiKey(APIKey).build();
             String prompt = String.format(PROMPT_TEMPLATE, topic);
-            String raw = client.models.generateContent(model, prompt, null).text();
+            String raw    = client.models.generateContent(model, prompt, null).text();
 
-            logger.info("[AIUtils] Raw Gemini response for topic '" + topic + "':\n" + raw);
+            logger.info("[AIUtils] Raw Gemini response for '" + topic + "':\n" + raw);
 
             List<Question> questions = parse(raw);
 
             if (questions.isEmpty()) {
-                logger.warning("[AIUtils] Parser returned 0 questions for topic: " + topic);
+                logger.warning("[AIUtils] Parser returned 0 questions for: " + topic);
                 return false;
             }
 
@@ -114,12 +113,11 @@ public class AIUtils {
                 ps.executeBatch();
             }
 
-            logger.info("[AIUtils] Successfully inserted " + questions.size() + " questions for tid=" + tid);
+            logger.info("[AIUtils] Inserted " + questions.size() + " questions for tid=" + tid);
             return true;
 
         } catch (Exception e) {
-            // ── Fix 4: no printStackTrace — use logger ─────────────────
-            logger.log(Level.SEVERE, "[AIUtils] Failed to fetch or store AI questions", e);
+            logger.log(Level.SEVERE, "[AIUtils] AI question generation failed", e);
             return false;
         }
     }
@@ -128,14 +126,13 @@ public class AIUtils {
     private static List<Question> parse(String rawText) {
         List<Question> list = new ArrayList<>();
 
-        // Strip common markdown artifacts Gemini sometimes adds
         String cleaned = rawText
-                .replace("**", "")          // bold markers
-                .replace("```", "")         // code fences
-                .replace("\r\n", "\n")      // normalise line endings
+                .replace("**", "")
+                .replace("```", "")
+                .replace("\r\n", "\n")
                 .replace("\r", "\n");
 
-        Matcher m = Pattern.compile(pattern, Pattern.DOTALL).matcher(cleaned);
+        Matcher m = QUESTION_PATTERN.matcher(cleaned);
         while (m.find()) {
             list.add(new Question(
                     Integer.parseInt(m.group(1)),
@@ -160,10 +157,10 @@ public class AIUtils {
         String answer;
 
         Question(int n, String q, List<String> o, String a) {
-            this.number = n;
+            this.number   = n;
             this.question = q;
-            this.options = o;
-            this.answer = a;
+            this.options  = o;
+            this.answer   = a;
         }
     }
 }

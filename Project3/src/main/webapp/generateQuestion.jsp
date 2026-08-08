@@ -22,22 +22,19 @@
         int tid = AIUtils.prepareQuestions(conn, topic, source);
 
         if (tid == -1) {
-            // Topic not found in DB at all
             out.print("<script>alert('No questions found for \"" + topic + "\". " +
                       "Please choose a different topic or use AI Generated.'); " +
                       "window.location='setup.jsp';</script>");
             return;
         }
 
-        // Extra check for database source: make sure there are actually questions stored
         if (source.equals("database")) {
             PreparedStatement check = conn.prepareStatement(
                 "SELECT COUNT(*) FROM questions WHERE tid = ?");
             check.setInt(1, tid);
             ResultSet rs = check.executeQuery();
             rs.next();
-            int qCount = rs.getInt(1);
-            if (qCount == 0) {
+            if (rs.getInt(1) == 0) {
                 out.print("<script>alert('The topic \"" + topic + "\" exists but has no questions " +
                           "in the database yet. Please use AI Generated instead.'); " +
                           "window.location='setup.jsp';</script>");
