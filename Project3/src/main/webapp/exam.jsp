@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.sql.*" %>
+<%@ page import="java.sql.*, java.util.*, java.util.concurrent.*, com.exam.util.DBConnectionPool, com.exam.util.QuestionCache" %>
 <%@ include file="db_config.jsp" %>
 <%
     Object topicObj = session.getAttribute("currentTopic");
@@ -54,7 +54,7 @@
                 Preparing your exam…
             </p>
             <p style="font-size: 0.85rem; color: var(--ink-muted); margin: 0;">
-                Fetching questions for <strong style="color: var(--accent-light);"><%= topic %></strong>
+                Loading questions for <strong style="color: var(--accent-light);"><%= topic %></strong>
             </p>
         </div>
     </div>
@@ -71,60 +71,137 @@
             Topic: <strong style="color: var(--ink);"><%= topic %></strong> |
             Questions: <strong style="color: var(--ink);"><%= limit %></strong>
         </p>
-        <form id="examForm" action="result.jsp" method="POST">
+        
+        <!-- Skeletal loading state - shown initially, hidden after questions load -->
+        <div id="skeletonLoader">
+            <% for(int i = 0; i < Math.min(limit, 5); i++) { %>
+                <div class="skeleton-card">
+                    <div class="skeleton-text" style="width: 80%;"></div>
+                    <div class="skeleton-text-sm"></div>
+                    <div class="skeleton-option"></div>
+                    <div class="skeleton-option"></div>
+                    <div class="skeleton-option"></div>
+                    <div class="skeleton-option"></div>
+                </div>
+            <% } %>
+        </div>
+        
+        <!-- Actual form - hidden initially, shown after questions load -->
+        <form id="examForm" action="result.jsp" method="POST" style="display: none;">
             <input type="hidden" name="_csrf" value="<%= session.getAttribute("_csrf") %>">
+            <div id="questionsContainer">
             <%
-                try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
-                    String sql = "SELECT * FROM questions WHERE tid = ? ORDER BY RANDOM() LIMIT ?";
-                    PreparedStatement ps = conn.prepareStatement(sql);
-                    ps.setInt(1, tid);
-                    ps.setInt(2, limit);
-                    ResultSet rs = ps.executeQuery();
+                // Try to get from cache first
+                List<Map<String, Object>> cachedQuestions = QuestionCache.get(topic, tid);
+                boolean useCache = (cachedQuestions != null);
+                
+                Connection conn = null;
+                PreparedStatement ps = null;
+                ResultSet rs = null;
+                long startTime = System.currentTimeMillis();
+                try {
+                    List<Map<String, Object>> questions;
+                    
+                    if (useCache) {
+                        questions = cachedQuestions;
+                        System.out.println("[exam.jsp] Using cached questions for: " + topic);
+                    } else {
+                        conn = DBConnectionPool.getConnection();
+                        
+                        // Simple, optimized query - only select needed columns
+                        String sql = "SELECT qid, qtext, qopts, qans FROM questions WHERE tid = ? ORDER BY random() LIMIT ?";
+                        ps = conn.prepareStatement(sql);
+                        ps.setInt(1, tid);
+                        ps.setInt(2, Math.min(limit, 50)); // Cap at 50 for performance
+                        
+                        rs = ps.executeQuery();
+                        
+                        questions = new ArrayList<>();
+                        while(rs.next()) {
+                            Map<String, Object> question = new HashMap<>();
+                            question.put("qid", rs.getInt("qid"));
+                            question.put("qtext", rs.getString("qtext"));
+                            question.put("qopts", rs.getArray("qopts").getArray());
+                            question.put("qans", rs.getString("qans"));
+                            questions.add(question);
+                        }
+                        
+                        // Cache the results
+                        QuestionCache.put(topic, tid, questions);
+                        System.out.println("[exam.jsp] Cached " + questions.size() + " questions for: " + topic);
+                    }
+                    
                     int count = 1;
-                    while(rs.next()) {
-                        String[] opts = (String[]) rs.getArray("qopts").getArray();
+                    int maxQuestions = Math.min(limit, questions.size());
+                    for (int i = 0; i < maxQuestions; i++) {
+                        Map<String, Object> question = questions.get(i);
+                        String[] opts = (String[]) question.get("qopts");
             %>
                         <div class="q-card">
-                            <h3 style="margin-bottom: 1rem;"><%= count++ %>. <%= rs.getString("qtext") %></h3>
+                            <h3 style="margin-bottom: 1rem;"><%= count %>. <%= question.get("qtext") %></h3>
                             
                             <label class="option-container">
-                                <input type="radio" name="q<%= rs.getInt("qid") %>" value="A" required> 
+                                <input type="radio" name="q<%= question.get("qid") %>" value="A" required> 
                                 <span><%= opts[0] %></span>
                             </label>
                             
                             <label class="option-container">
-                                <input type="radio" name="q<%= rs.getInt("qid") %>" value="B"> 
+                                <input type="radio" name="q<%= question.get("qid") %>" value="B"> 
                                 <span><%= opts[1] %></span>
                             </label>
                            
                             <label class="option-container">
-                                <input type="radio" name="q<%= rs.getInt("qid") %>" value="C"> 
+                                <input type="radio" name="q<%= question.get("qid") %>" value="C"> 
                                 <span><%= opts[2] %></span>
                             </label>
                             
                             <label class="option-container">
-                                <input type="radio" name="q<%= rs.getInt("qid") %>" value="D"> 
+                                <input type="radio" name="q<%= question.get("qid") %>" value="D"> 
                                 <span><%= opts[3] %></span>
                             </label>
                         </div>
             <%
+                        count++;
                     }
+                    long endTime = System.currentTimeMillis();
+                    System.out.println("[exam.jsp] Total time: " + (endTime - startTime) + "ms (cached: " + useCache + ")");
                 } catch(Exception e) { 
                     out.print("<div class='q-card error'>Database Error: " + e.getMessage() + "</div>");
+                    e.printStackTrace();
+                } finally {
+                    // Clean up resources and return connection to pool
+                    try {
+                        if (rs != null) rs.close();
+                        if (ps != null) ps.close();
+                        if (conn != null) DBConnectionPool.releaseConnection(conn);
+                    } catch(Exception e) {
+                        // Ignore cleanup errors
+                    }
                 }
             %>
+            </div>
             <button type="submit" class="btn-submit" style="margin-top: 1.5rem; font-size: 1.1rem; padding: 1rem;">Finish &amp; Submit Exam</button>
         </form>
       </div>
     </div>
     <script>
-        // Hide the overlay once the full page has loaded
+        // Hide the overlay and skeleton loader once the full page has loaded
         window.addEventListener('load', function () {
             var overlay = document.getElementById('loadingOverlay');
+            var skeletonLoader = document.getElementById('skeletonLoader');
+            var examForm = document.getElementById('examForm');
+            
+            // Hide overlay with fade effect
             if (overlay) {
                 overlay.style.transition = 'opacity 0.3s ease';
                 overlay.style.opacity = '0';
                 setTimeout(function () { overlay.remove(); }, 300);
+            }
+            
+            // Hide skeleton loader and show actual form
+            if (skeletonLoader && examForm) {
+                skeletonLoader.style.display = 'none';
+                examForm.style.display = 'block';
             }
         });
     </script>

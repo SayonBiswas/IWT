@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="java.sql.*" %>
+<%@ page import="java.sql.*, com.exam.util.DBConnectionPool" %>
 <%@ include file="db_config.jsp" %>
 <%
     if (session.getAttribute("username") == null) {
@@ -36,45 +36,51 @@
                             <span>Internal Database</span>
                         </label>
                         <label class="option-container" style="flex:1; text-align:center; justify-content:center;">
-                            <input type="radio" name="source" value="ai_generated">
+                            <input type="radio" name="source" value="ai">
                             <span>AI Generated</span>
                         </label>
                     </div>
                     <p style="font-size:0.8rem; color:var(--ink-muted); margin-top:0.5rem;">
-                        * Internal database fetches instantly. AI generation may take 10–15 seconds.
+                        * Internal database fetches instantly. AI generation may take 15–30 seconds.
                     </p>
                 </div>
 
-                <!-- DATABASE: dropdown of real topic names from DB -->
-                <div class="form-group" id="db-topic-group">
-                    <label>Select Topic</label>
-                    <select name="topic" id="topic_db">
-                        <option value="">-- Select a topic --</option>
-                        <%
-                            try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
-                                PreparedStatement ps = conn.prepareStatement(
-                                    "SELECT tname FROM topics ORDER BY tname DESC");
-                                ResultSet rs = ps.executeQuery();
-                                while (rs.next()) {
-                        %>
-                            <option value="<%= rs.getString("tname") %>">
-                                <%= rs.getString("tname") %>
-                            </option>
-                        <%
-                                }
-                            } catch (Exception e) {
-                                getServletContext().log("[setup.jsp] Failed to load topics", e);
-                            }
-                        %>
-                    </select>
-                </div>
-
-                <!-- AI: free-text input, hidden by default -->
-                <div class="form-group" id="ai-topic-group" style="display:none;">
+                <!-- Topic input - used for both database and AI sources -->
+                <div class="form-group">
                     <label>Exam Topic</label>
-                    <input type="text" name="topic" id="topic_ai"
-                           placeholder="e.g., C++, Java, Python..."
-                           maxlength="100" disabled>
+                    <input type="text" name="topic" id="topic_input"
+                           placeholder="e.g., C++, Java, Python, Data Structures..."
+                           maxlength="100" required>
+                    <p style="font-size:0.8rem; color:var(--ink-muted); margin-top:0.5rem;">
+                        <% Connection conn = null;
+                           try {
+                               conn = DBConnectionPool.getConnection();
+                               PreparedStatement ps = conn.prepareStatement(
+                                   "SELECT COUNT(*) FROM topics");
+                               ResultSet rs = ps.executeQuery();
+                               rs.next();
+                               int topicCount = rs.getInt(1);
+                               rs.close();
+                               ps.close();
+                           %>
+                               * Database has <%= topicCount %> topics available. Type any topic name to search.
+                           <%
+                               } catch (Exception e) {
+                                   getServletContext().log("[setup.jsp] Failed to load topic count", e);
+                           %>
+                               * Database topics available.
+                           <%
+                               } finally {
+                                   if (conn != null) {
+                                       try {
+                                           DBConnectionPool.releaseConnection(conn);
+                                       } catch (Exception e) {
+                                           // Ignore cleanup errors
+                                       }
+                                   }
+                               }
+                           %>
+                    </p>
                 </div>
 
                 <!-- NUMBER OF QUESTIONS -->
@@ -92,37 +98,27 @@
 
     <script>
     (function () {
-        const radios  = document.querySelectorAll('input[name="source"]');
-        const dbGroup = document.getElementById('db-topic-group');
-        const aiGroup = document.getElementById('ai-topic-group');
-        const form    = document.getElementById('setupForm');
-        const dbSel   = document.getElementById('topic_db');
-        const aiInp   = document.getElementById('topic_ai');
-
-        function toggleTopicInput() {
-            const isDB = document.querySelector('input[name="source"]:checked').value === 'database';
-            dbGroup.style.display = isDB ? 'block' : 'none';
-            aiGroup.style.display = isDB ? 'none'  : 'block';
-            dbSel.disabled = !isDB;   // only the visible one submits
-            aiInp.disabled =  isDB;
-        }
-
-        radios.forEach(r => r.addEventListener('change', toggleTopicInput));
-        toggleTopicInput();
+        const form = document.getElementById('setupForm');
+        const topicInput = document.getElementById('topic_input');
 
         form.addEventListener('submit', function (e) {
-            const isDB = document.querySelector('input[name="source"]:checked').value === 'database';
-            const val  = isDB ? dbSel.value : aiInp.value.trim();
-            if (!val) {
+            const topicValue = topicInput.value.trim();
+            if (!topicValue) {
                 e.preventDefault();
-                alert(isDB ? 'Please select a topic.' : 'Please enter a topic.');
+                alert('Please enter a topic.');
+                return;
             }
-            // Show loading state on button
+            
+            // Show loading state on button immediately
             const btn = document.querySelector('button[type="submit"]');
-            const isAI = document.querySelector('input[name="source"]:checked').value === 'ai_generated';
+            const sourceValue = document.querySelector('input[name="source"]:checked').value;
+            const isAI = sourceValue === 'ai';
+            
+            btn.disabled = true;
             if (isAI) {
-                btn.disabled = true;
-                btn.textContent = '⏳ Generating AI Questions... Please wait';
+                btn.innerHTML = '<span class="btn-spinner"></span> Generating AI Questions... Please wait';
+            } else {
+                btn.innerHTML = '<span class="btn-spinner"></span> Loading Questions...';
             }
         });
     })();
