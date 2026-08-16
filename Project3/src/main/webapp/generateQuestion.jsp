@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ page import="com.exam.util.AIUtils, com.exam.util.DBConnectionPool, java.sql.*" %>
+<%@ page import="com.exam.util.AIUtils, com.exam.util.DBConnectionPool, com.exam.util.JobStore, java.sql.*" %>
 <%@ include file="db_config.jsp" %>
 <%
     if (session.getAttribute("username") == null) {
@@ -17,105 +17,125 @@
     }
 
     topic = topic.trim();
+
+    // ── DATABASE path: fast, do it inline ────────────────────────────────
+    if (source.equals("database")) {
+        int tid = -1;
+        String errorMsg = null;
+
+        Connection conn = null;
+        try {
+            conn = DBConnectionPool.getConnection();
+            tid  = AIUtils.prepareQuestions(conn, topic, source);
+        } catch (Exception e) {
+            errorMsg = "Something went wrong. Please try again.";
+            getServletContext().log("[generateQuestion.jsp] DB error", e);
+        } finally {
+            // Release connection BEFORE writing any response
+            if (conn != null) {
+                try { DBConnectionPool.releaseConnection(conn); } catch (Exception ignored) {}
+            }
+        }
+
+        if (errorMsg == null && tid != -1) {
+            session.setAttribute("currentTid", tid);
+            session.setAttribute("currentTopic", topic);
+            session.setAttribute("totalQuestions", Integer.parseInt(count));
+            response.sendRedirect("exam.jsp");
+            return;
+        }
+
+        // DB failure — fall through to render error page below
+        if (errorMsg == null) {
+            errorMsg = "No questions found for \"" + topic + "\" in the database. " +
+                       "The topic may not exist or has no questions yet. " +
+                       "Please check the topic name or use AI Generated.";
+        }
 %>
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generating Questions...</title>
+    <title>Error</title>
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
-    <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
 </head>
 <body>
-    <!-- Loading overlay shown immediately -->
-    <div id="loadingOverlay" style="
-        position: fixed;
-        inset: 0;
-        z-index: 999;
-        background: var(--bg-page);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 1.5rem;
-    ">
-        <div style="
-            width: 48px; height: 48px;
-            border: 4px solid var(--border);
-            border-top-color: var(--accent-light);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        "></div>
-        <div style="text-align: center;">
-            <p style="font-size: 1rem; font-weight: 600; color: var(--ink); margin: 0 0 0.4rem 0;">
-                <% if (source.equals("ai")) { %>
-                    Generating AI Questions...
-                <% } else { %>
-                    Loading Questions...
-                <% } %>
-            </p>
-            <p style="font-size: 0.85rem; color: var(--ink-muted); margin: 0;">
-                Preparing exam for <strong style="color: var(--accent-light);"><%= topic %></strong>
-            </p>
-        </div>
-    </div>
+    <script>
+        setTimeout(function () {
+            alert('<%= errorMsg.replace("'", "\\'").replace("\n", " ") %>');
+            window.location = 'setup.jsp';
+        }, 50);
+    </script>
+</body>
+</html>
+<%
+        return;
+    }
 
-    <%
+    // ── AI path: kick off background job, redirect to loading page ────────
+    //
+    // 1. Do only the fast DB work (topic lookup / insert / cache invalidation)
+    //    while holding a connection — this takes milliseconds.
+    // 2. Start a background thread for the Gemini call (could take 15-60s).
+    // 3. Store a jobId in the session and redirect immediately.
+    //    The browser never waits for Gemini here.
+
+    String jobId    = null;
+    String jobError = null;
+
     Connection conn = null;
     try {
         conn = DBConnectionPool.getConnection();
-        int tid = AIUtils.prepareQuestions(conn, topic, source);
+
+        // Resolve or create the topic row — fast DB work only
+        int tid = AIUtils.prepareTopicForAI(conn, topic);
 
         if (tid == -1) {
-            String errorMsg;
-            if (source.equals("ai")) {
-                errorMsg = "AI question generation timed out or failed. " +
-                          "This may be due to slow API response or network issues. Please try again or use Database questions.";
-            } else {
-                errorMsg = "No questions found for \"" + topic + "\" in the database. " +
-                          "The topic may not exist or has no questions yet. Please check the topic name or use AI Generated.";
-            }
-    %>
-            <script>
-                setTimeout(function() {
-                    alert('<%= errorMsg %>');
-                    window.location='setup.jsp';
-                }, 100);
-            </script>
-    <%
-            return;
+            jobError = "Failed to create or find topic in the database. Please try again.";
+        } else {
+            // Store count + topic in session now so loading.jsp can show them
+            session.setAttribute("currentTopic", topic);
+            session.setAttribute("totalQuestions", Integer.parseInt(count));
+            // currentTid intentionally NOT set yet — set by the background job on success
+
+            // Register the job and launch it; JobStore returns a unique jobId
+            jobId = JobStore.startAIJob(topic, tid, session);
         }
 
-        session.setAttribute("currentTid", tid);
-        session.setAttribute("currentTopic", topic);
-        session.setAttribute("totalQuestions", Integer.parseInt(count));
-    %>
-        <script>
-            window.location='exam.jsp';
-        </script>
-    <%
     } catch (Exception e) {
-        getServletContext().log("[generateQuestion.jsp] Failed to prepare questions", e);
-    %>
-        <script>
-            setTimeout(function() {
-                alert('Something went wrong. Please try again.');
-                window.location='setup.jsp';
-            }, 100);
-        </script>
-    <%
+        jobError = "Something went wrong starting AI generation. Please try again.";
+        getServletContext().log("[generateQuestion.jsp] Failed to start AI job", e);
     } finally {
+        // Connection released here — background thread acquires its own later
         if (conn != null) {
-            try {
-                DBConnectionPool.releaseConnection(conn);
-            } catch (Exception e) {
-                // Ignore cleanup errors
-            }
+            try { DBConnectionPool.releaseConnection(conn); } catch (Exception ignored) {}
         }
     }
-    %>
+
+    if (jobError != null) {
+%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
+</head>
+<body>
+    <script>
+        setTimeout(function () {
+            alert('<%= jobError.replace("'", "\\'") %>');
+            window.location = 'setup.jsp';
+        }, 50);
+    </script>
 </body>
 </html>
+<%
+        return;
+    }
+
+    // Job started successfully — redirect to the loading/polling page
+    response.sendRedirect("loading.jsp?jobId=" + jobId);
+%>

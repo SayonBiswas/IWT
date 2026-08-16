@@ -10,26 +10,22 @@ import java.util.concurrent.*;
 public class AIUtils {
 
     private static final Logger logger = Logger.getLogger(AIUtils.class.getName());
-    private static final String APIKey = System.getenv("GEMINI_API_KEY");
-    private static final String model  = "gemini-1.5-flash"; // Stable, fast model with good performance
-    
-    // ── Timeout configuration ─────────────────────────────────────────────
-    private static final int AI_TIMEOUT_SECONDS = 60; // 60 seconds timeout for AI calls (increased for reliability)
+    private static final String model  = "gemini-3-flash-preview";
+
+    private static final int AI_TIMEOUT_SECONDS = 60;
     private static final ExecutorService executor = Executors.newCachedThreadPool();
 
-    // ── Static client — created once, reused on every request ─────────────
     private static final Client client = Client.builder()
             .apiKey(System.getenv("GEMINI_API_KEY"))
             .build();
 
-    // ── Regex WITHOUT DOTALL — no catastrophic backtracking ───────────────
     private static final Pattern QUESTION_PATTERN = Pattern.compile(
-            "(?im)^\\s*(\\d+)[.)]+\\s*(.+)\\r?\\n" +   // question number + text
-                    "\\s*A[.)]+\\s*(.+)\\r?\\n" +               // option A
-                    "\\s*B[.)]+\\s*(.+)\\r?\\n" +               // option B
-                    "\\s*C[.)]+\\s*(.+)\\r?\\n" +               // option C
-                    "\\s*D[.)]+\\s*(.+)\\r?\\n" +               // option D
-                    "\\s*(?:\\*{0,2})\\s*Answer\\s*[:\\s]+(?:\\*{0,2})\\s*([A-D])"  // Answer: A
+            "(?im)^\\s*(\\d+)[.)]+\\s*(.+)\\r?\\n" +
+                    "\\s*A[.)]+\\s*(.+)\\r?\\n" +
+                    "\\s*B[.)]+\\s*(.+)\\r?\\n" +
+                    "\\s*C[.)]+\\s*(.+)\\r?\\n" +
+                    "\\s*D[.)]+\\s*(.+)\\r?\\n" +
+                    "\\s*(?:\\*{0,2})\\s*Answer\\s*[:\\s]+(?:\\*{0,2})\\s*([A-D])"
     );
 
     private static final String PROMPT_TEMPLATE =
@@ -43,39 +39,125 @@ public class AIUtils {
                     "Answer: A\n\n" +
                     "Repeat for all 10 questions. Do not add any extra text or formatting.";
 
-    // ── Public entry point ─────────────────────────────────────────────────
+    // ── Original entry point (database source still uses this) ───────────
+
     public static int prepareQuestions(Connection conn, String topic, String source) throws SQLException {
         int tid = getTopicId(conn, topic);
 
         if (source.equals("database")) {
-            // Check if topic exists and has questions
-            if (tid == -1) {
-                return -1; // Topic not found
-            }
-            // Verify that the topic has questions in the database
+            if (tid == -1) return -1;
             try (PreparedStatement check = conn.prepareStatement(
                     "SELECT COUNT(*) FROM questions WHERE tid = ?")) {
                 check.setInt(1, tid);
                 ResultSet rs = check.executeQuery();
                 rs.next();
-                if (rs.getInt(1) == 0) {
-                    return -1; // Topic exists but has no questions
+                return rs.getInt(1) == 0 ? -1 : tid;
+            }
+        }
+        // source "ai" is no longer handled here — use prepareTopicForAI + fetchAIQuestionsAsync
+        return -1;
+    }
+
+    // ── NEW: Step 1 of async AI path ──────────────────────────────────────
+    //
+    // Called by generateQuestion.jsp on the HTTP thread using the caller's
+    // connection. Does only fast DB work: resolve/create the topic row and
+    // clear stale questions + cache. Returns the tid (or -1 on failure).
+    // The caller releases the connection immediately after this returns.
+    //
+    public static int prepareTopicForAI(Connection conn, String topic) throws SQLException {
+        int tid = getTopicId(conn, topic);
+
+        if (tid != -1) {
+            // Topic exists — wipe old AI questions and invalidate cache
+            clearExistingQuestions(conn, tid);
+            QuestionCache.invalidate(topic, tid);
+        } else {
+            // New topic — create it
+            tid = createNewTopic(conn, topic);
+        }
+
+        return tid;
+    }
+
+    // ── NEW: Step 2 of async AI path ──────────────────────────────────────
+    //
+    // Called by JobStore's background thread. No connection parameter —
+    // acquires its own connection only during the INSERT, after Gemini
+    // has already responded. Returns true on success.
+    //
+    public static boolean fetchAIQuestionsAsync(String topic, int tid) {
+        try {
+            logger.info("[AIUtils] Starting async AI generation for topic: " + topic);
+            String prompt = String.format(PROMPT_TEMPLATE, topic);
+
+            // ── Step A: Call Gemini — no DB connection held ───────────────
+            Future<String> future = executor.submit(() ->
+                    client.models.generateContent(model, prompt, null).text()
+            );
+
+            String raw;
+            try {
+                raw = future.get(AI_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                logger.info("[AIUtils] Gemini responded for '" + topic + "'");
+            } catch (TimeoutException e) {
+                future.cancel(true);
+                logger.warning("[AIUtils] Gemini timed out after " + AI_TIMEOUT_SECONDS + "s");
+                return false;
+            }
+
+            // ── Step B: Parse ─────────────────────────────────────────────
+            List<Question> questions = parse(raw);
+            if (questions.isEmpty()) {
+                logger.warning("[AIUtils] Parser returned 0 questions for: " + topic);
+                logger.warning("[AIUtils] Raw response: " + raw);
+                return false;
+            }
+
+            // ── Step C: Insert — acquire a fresh connection NOW ───────────
+            Connection insertConn = null;
+            try {
+                insertConn = DBConnectionPool.getConnection();
+                String sql = "INSERT INTO questions (qno, qtext, qopts, qans, tid) VALUES (?, ?, ?, ?, ?)";
+                try (PreparedStatement ps = insertConn.prepareStatement(sql)) {
+                    for (Question q : questions) {
+                        ps.setInt(1, q.number);
+                        ps.setString(2, q.question);
+                        ps.setArray(3, insertConn.createArrayOf("text", q.options.toArray()));
+                        ps.setString(4, q.answer);
+                        ps.setInt(5, tid);
+                        ps.addBatch();
+                    }
+                    ps.executeBatch();
+                }
+                logger.info("[AIUtils] Inserted " + questions.size() + " questions for tid=" + tid);
+                return true;
+
+            } finally {
+                if (insertConn != null) {
+                    try {
+                        DBConnectionPool.releaseConnection(insertConn);
+                    } catch (Exception e) {
+                        logger.warning("[AIUtils] Failed to release insert connection: " + e.getMessage());
+                    }
                 }
             }
-            return tid;
-        } else if (source.equals("ai")) {
-            if (tid != -1) {
-                clearExistingQuestions(conn, tid);
-            } else {
-                tid = createNewTopic(conn, topic);
-            }
-            return fetchAIQuestions(conn, topic, tid) ? tid : -1;
-        } else {
-            return -1; // Unknown source
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.warning("[AIUtils] AI generation interrupted for: " + topic);
+            return false;
+        } catch (ExecutionException e) {
+            logger.log(Level.SEVERE, "[AIUtils] Gemini execution failed for: " + topic, e.getCause());
+            return false;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "[AIUtils] Unexpected failure in fetchAIQuestionsAsync", e);
+            return false;
         }
     }
 
-    // ── DB helpers ─────────────────────────────────────────────────────────
+    // ── DB helpers ────────────────────────────────────────────────────────
+
     private static int getTopicId(Connection conn, String topic) throws SQLException {
         String sql = "SELECT tid FROM topics WHERE tname ILIKE ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -106,67 +188,8 @@ public class AIUtils {
         }
     }
 
-    // ── AI fetch ───────────────────────────────────────────────────────────
-    private static boolean fetchAIQuestions(Connection conn, String topic, int tid) {
-        try {
-            logger.info("[AIUtils] Starting AI question generation for topic: " + topic + " using model: " + model);
-            String prompt = String.format(PROMPT_TEMPLATE, topic);
-            
-            // Submit AI call to executor with timeout
-            Future<String> future = executor.submit(() -> {
-                return client.models.generateContent(model, prompt, null).text();
-            });
-            
-            String raw;
-            try {
-                raw = future.get(AI_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-                logger.info("[AIUtils] Raw Gemini response for '" + topic + "':\n" + raw);
-            } catch (TimeoutException e) {
-                future.cancel(true); // Interrupt the AI call if still running
-                logger.warning("[AIUtils] AI API call timed out after " + AI_TIMEOUT_SECONDS + " seconds for topic: " + topic);
-                logger.warning("[AIUtils] Consider checking your API key, network connection, or trying a different topic.");
-                return false;
-            }
+    // ── Parser ────────────────────────────────────────────────────────────
 
-            List<Question> questions = parse(raw);
-
-            if (questions.isEmpty()) {
-                logger.warning("[AIUtils] Parser returned 0 questions for: " + topic);
-                logger.warning("[AIUtils] Raw response that failed parsing: " + raw);
-                return false;
-            }
-
-            String sql = "INSERT INTO questions (qno, qtext, qopts, qans, tid) VALUES (?, ?, ?, ?, ?)";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                for (Question q : questions) {
-                    ps.setInt(1, q.number);
-                    ps.setString(2, q.question);
-                    ps.setArray(3, conn.createArrayOf("text", q.options.toArray()));
-                    ps.setString(4, q.answer);
-                    ps.setInt(5, tid);
-                    ps.addBatch();
-                }
-                ps.executeBatch();
-            }
-
-            logger.info("[AIUtils] Inserted " + questions.size() + " questions for tid=" + tid);
-            return true;
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore interrupt status
-            logger.warning("[AIUtils] AI question generation interrupted for topic: " + topic);
-            return false;
-        } catch (ExecutionException e) {
-            logger.log(Level.SEVERE, "[AIUtils] AI question generation execution failed for topic: " + topic, e);
-            logger.log(Level.SEVERE, "[AIUtils] Execution exception cause: " + e.getCause());
-            return false;
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "[AIUtils] AI question generation failed", e);
-            return false;
-        }
-    }
-
-    // ── Parser ─────────────────────────────────────────────────────────────
     private static List<Question> parse(String rawText) {
         List<Question> list = new ArrayList<>();
 
@@ -193,7 +216,8 @@ public class AIUtils {
         return list;
     }
 
-    // ── Inner model ────────────────────────────────────────────────────────
+    // ── Inner model ───────────────────────────────────────────────────────
+
     private static class Question {
         int number;
         String question;
