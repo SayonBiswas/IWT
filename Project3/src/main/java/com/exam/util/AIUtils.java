@@ -67,16 +67,20 @@ public class AIUtils {
     //
     public static int prepareTopicForAI(Connection conn, String topic) throws SQLException {
         int tid = getTopicId(conn, topic);
+        logger.info("[AIUtils] prepareTopicForAI - topic=" + topic + ", tid=" + tid);
 
         if (tid != -1) {
             // Topic exists — wipe old AI questions and invalidate cache
+            logger.info("[AIUtils] Topic exists, clearing old questions and invalidating cache");
             clearExistingQuestions(conn, tid);
             QuestionCache.invalidate(topic, tid);
         } else {
             // New topic — create it
+            logger.info("[AIUtils] New topic, creating in database");
             tid = createNewTopic(conn, topic);
         }
 
+        logger.info("[AIUtils] prepareTopicForAI - returning tid=" + tid);
         return tid;
     }
 
@@ -118,6 +122,7 @@ public class AIUtils {
             Connection insertConn = null;
             try {
                 insertConn = DBConnectionPool.getConnection();
+                insertConn.setAutoCommit(false);
                 String sql = "INSERT INTO questions (qno, qtext, qopts, qans, tid) VALUES (?, ?, ?, ?, ?)";
                 try (PreparedStatement ps = insertConn.prepareStatement(sql)) {
                     for (Question q : questions) {
@@ -130,9 +135,20 @@ public class AIUtils {
                     }
                     ps.executeBatch();
                 }
+                insertConn.commit();
                 logger.info("[AIUtils] Inserted " + questions.size() + " questions for tid=" + tid);
                 return true;
 
+            } catch (SQLException e) {
+                if (insertConn != null) {
+                    try {
+                        insertConn.rollback();
+                        logger.warning("[AIUtils] Rolled back insert due to error: " + e.getMessage());
+                    } catch (SQLException rollbackEx) {
+                        logger.warning("[AIUtils] Failed to rollback: " + rollbackEx.getMessage());
+                    }
+                }
+                throw e;
             } finally {
                 if (insertConn != null) {
                     try {
@@ -149,6 +165,9 @@ public class AIUtils {
             return false;
         } catch (ExecutionException e) {
             logger.log(Level.SEVERE, "[AIUtils] Gemini execution failed for: " + topic, e.getCause());
+            return false;
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "[AIUtils] Database insertion failed for: " + topic, e);
             return false;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "[AIUtils] Unexpected failure in fetchAIQuestionsAsync", e);

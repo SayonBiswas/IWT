@@ -2,21 +2,65 @@
 <%@ page import="java.sql.*, java.util.*, com.exam.util.DBConnectionPool, com.exam.util.QuestionCache" %>
 <%@ include file="db_config.jsp" %>
 <%
+    System.out.println("[exam.jsp] === START EXAM PAGE ===");
+    System.out.println("[exam.jsp] Session attributes: currentTopic=" + session.getAttribute("currentTopic") + ", totalQuestions=" + session.getAttribute("totalQuestions") + ", currentTid=" + session.getAttribute("currentTid"));
+    
     Object topicObj = session.getAttribute("currentTopic");
     Object limitObj = session.getAttribute("totalQuestions");
     if (topicObj == null || limitObj == null) {
-        response.sendRedirect("setup.jsp");
+        System.out.println("[exam.jsp] MISSING SESSION ATTRS - topicObj=" + topicObj + ", limitObj=" + limitObj);
+%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Session Error</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
+</head>
+<body>
+    <div class="page-shell">
+        <div class="setup-card">
+            <h2 style="color: var(--red);">Session Error</h2>
+            <p>Your session has expired or is missing required information. Please start over.</p>
+            <p><strong>Debug info:</strong> topicObj=<%= topicObj %>, limitObj=<%= limitObj %></p>
+            <a href="setup.jsp" class="btn-submit">Return to Setup</a>
+        </div>
+    </div>
+</body>
+</html>
+<%
         return;
     }
 
     Integer tid = (Integer) session.getAttribute("currentTid");
     if (tid == null || tid == -1) {
-        response.sendRedirect("setup.jsp");
+        System.out.println("[exam.jsp] INVALID TID - tid=" + tid);
+%>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Topic Error</title>
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
+</head>
+<body>
+    <div class="page-shell">
+        <div class="setup-card">
+            <h2 style="color: var(--red);">Topic Not Ready</h2>
+            <p>The topic ID is invalid or not set. This usually means the AI generation is still in progress or failed.</p>
+            <p><strong>Debug info:</strong> tid=<%= tid %>, topic=<%= topicObj %></p>
+            <a href="setup.jsp" class="btn-submit">Return to Setup</a>
+        </div>
+    </div>
+</body>
+</html>
+<%
         return;
     }
 
     String topic = (String) topicObj;
     int limit    = (Integer) limitObj;
+    System.out.println("[exam.jsp] Valid session - topic=" + topic + ", limit=" + limit + ", tid=" + tid);
 %>
 <!DOCTYPE html>
 <html>
@@ -119,12 +163,14 @@
                         System.out.println("[exam.jsp] Using cached questions for: " + topic);
                     } else {
                         conn = DBConnectionPool.getConnection();
+                        System.out.println("[exam.jsp] Fetching questions from database for tid=" + tid + ", topic=" + topic);
 
                         String sql = "SELECT qid, qtext, qopts, qans FROM questions WHERE tid = ? ORDER BY random() LIMIT ?";
                         ps = conn.prepareStatement(sql);
                         ps.setInt(1, tid);
                         ps.setInt(2, Math.min(limit, 50));
                         rs = ps.executeQuery();
+                        System.out.println("[exam.jsp] Database query executed successfully");
 
                         questions = new ArrayList<>();
                         while (rs.next()) {
@@ -136,12 +182,15 @@
                             questions.add(question);
                         }
 
+                        System.out.println("[exam.jsp] Retrieved " + questions.size() + " questions from database");
                         QuestionCache.put(topic, tid, questions);
                         System.out.println("[exam.jsp] Cached " + questions.size() + " questions for: " + topic);
                     }
 
                     int count = 1;
                     int maxQuestions = Math.min(limit, questions.size());
+                    
+                    System.out.println("[exam.jsp] Total questions available: " + questions.size() + ", requested: " + limit + ", will display: " + maxQuestions);
 
                     for (int i = 0; i < maxQuestions; i++) {
                         Map<String, Object> question = questions.get(i);
@@ -175,8 +224,9 @@
                     System.out.println("[exam.jsp] Total time: " + (endTime - startTime) + "ms (cached: " + useCache + ")");
 
                 } catch (Exception e) {
-                    out.print("<div class='q-card error'>Database Error: " + e.getMessage() + "</div>");
+                    System.out.println("[exam.jsp] ERROR: Failed to fetch questions - " + e.getMessage());
                     e.printStackTrace();
+                    out.print("<div class='q-card error'>Database Error: " + e.getMessage() + "</div>");
                 } finally {
                     try {
                         if (rs   != null) rs.close();

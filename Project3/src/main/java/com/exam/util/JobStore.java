@@ -100,6 +100,7 @@ public class JobStore {
         String jobId = UUID.randomUUID().toString();
         JobEntry entry = new JobEntry();
         store.put(jobId, entry);
+        logger.info("[JobStore] Starting AI job " + jobId + " for topic: " + topic + ", tid: " + tid);
 
         // Launch the background thread — no HTTP thread or DB connection held here
         Future<?> future = executor.submit(() -> {
@@ -116,13 +117,16 @@ public class JobStore {
             int     resultTid = tid;
 
             try {
+                logger.info("[JobStore] Calling AIUtils.fetchAIQuestionsAsync for job " + jobId);
                 // AIUtils.fetchAIQuestionsAsync acquires its own DB connection
                 // only during the INSERT (after Gemini responds) — see AIUtils.java
                 success = AIUtils.fetchAIQuestionsAsync(topic, tid);
+                logger.info("[JobStore] AIUtils.fetchAIQuestionsAsync returned " + success + " for job " + jobId);
 
                 if (!success) {
                     error = "AI question generation failed or timed out. " +
                             "Please try again or use Database questions.";
+                    logger.warning("[JobStore] AI generation failed for job " + jobId);
                 }
 
             } catch (Exception e) {
@@ -146,6 +150,7 @@ public class JobStore {
         });
 
         entry.future = future;
+        logger.info("[JobStore] Job " + jobId + " started, returning jobId to caller");
         return jobId;
     }
 

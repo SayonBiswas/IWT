@@ -1,5 +1,5 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ include file="db_config.jsp" %>
+<%@ page import="com.exam.util.DBConnectionPool, java.sql.*" %>
 <%
     if (session.getAttribute("username") == null) { response.sendRedirect("login.jsp"); return; }
     String topic = (String) session.getAttribute("currentTopic");
@@ -19,11 +19,15 @@
 
     String inClause = qids.stream().map(i -> "?").collect(java.util.stream.Collectors.joining(","));
     java.util.List<java.util.Map<String, Object>> details = new java.util.ArrayList<>();
-    try (Connection conn = DriverManager.getConnection(dbUrl, user, pass)) {
+    Connection conn = null;
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+        conn = DBConnectionPool.getConnection();
         String sql = "SELECT qid, qtext, qopts, qans FROM questions WHERE qid IN (" + inClause + ")";
-        PreparedStatement ps = conn.prepareStatement(sql);
+        ps = conn.prepareStatement(sql);
         int idx = 1; for (Integer id : qids) ps.setInt(idx++, id);
-        ResultSet rs = ps.executeQuery();
+        rs = ps.executeQuery();
         
         java.util.Map<Integer, java.util.Map<String, Object>> map = new java.util.HashMap<>();
         while (rs.next()) {
@@ -62,6 +66,20 @@
     } catch (Exception e) {
         getServletContext().log("[result.jsp] Score calculation failed", e);
         out.print("<div class='error'>Could not calculate your score. Please try again.</div>");
+    } finally {
+        try {
+            if (rs != null) rs.close();
+            if (ps != null) ps.close();
+        } catch (Exception e) {
+            getServletContext().log("[result.jsp] Failed to close statement/result", e);
+        }
+        if (conn != null) {
+            try {
+                DBConnectionPool.releaseConnection(conn);
+            } catch (Exception e) {
+                getServletContext().log("[result.jsp] Failed to release connection", e);
+            }
+        }
     }
 %>
 <!DOCTYPE html>

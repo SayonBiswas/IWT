@@ -35,8 +35,10 @@ public class QuestionCache {
         String key = topic + ":" + tid;
         CacheEntry entry = cache.get(key);
         if (entry != null && !entry.isExpired()) {
+            System.out.println("[QuestionCache] Cache HIT for key: " + key + ", returning " + entry.questions.size() + " questions");
             return new ArrayList<>(entry.questions);
         }
+        System.out.println("[QuestionCache] Cache MISS for key: " + key);
         return null;
     }
 
@@ -49,6 +51,7 @@ public class QuestionCache {
             }
         }
         cache.put(key, new CacheEntry(questions));
+        System.out.println("[QuestionCache] Cached " + questions.size() + " questions for key: " + key);
     }
 
     // FIX: New method — called by AIUtils before regenerating questions for
@@ -57,6 +60,7 @@ public class QuestionCache {
     public static void invalidate(String topic, int tid) {
         String key = topic + ":" + tid;
         cache.remove(key);
+        System.out.println("[QuestionCache] Invalidated cache for key: " + key);
     }
 
     private static void cleanupExpiredEntries() {

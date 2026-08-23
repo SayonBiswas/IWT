@@ -1,19 +1,35 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="com.exam.util.JobStore" %>
 <%
+    System.out.println("[loading.jsp] === LOADING PAGE START ===");
+    System.out.println("[loading.jsp] Parameters - jobId: " + request.getParameter("jobId"));
+    
     if (session.getAttribute("username") == null) {
+        System.out.println("[loading.jsp] User not logged in");
         response.sendRedirect("login.jsp");
         return;
     }
 
     String jobId = request.getParameter("jobId");
-    if (jobId == null || jobId.trim().isEmpty() || !JobStore.exists(jobId)) {
+    System.out.println("[loading.jsp] JobId from request: " + jobId);
+    
+    if (jobId == null || jobId.trim().isEmpty()) {
+        System.out.println("[loading.jsp] JobId is null or empty");
         response.sendRedirect("setup.jsp");
         return;
     }
+    
+    if (!JobStore.exists(jobId)) {
+        System.out.println("[loading.jsp] Job does not exist in JobStore: " + jobId);
+        response.sendRedirect("setup.jsp");
+        return;
+    }
+    
+    System.out.println("[loading.jsp] Job exists in JobStore: " + jobId);
 
     String topic = (String) session.getAttribute("currentTopic");
     if (topic == null) topic = "your topic";
+    System.out.println("[loading.jsp] Topic from session: " + topic);
 %>
 <!DOCTYPE html>
 <html>
@@ -128,10 +144,49 @@
         <p class="status-line" id="statusLine">Contacting Gemini AI…</p>
         <p class="eta-line"    id="etaLine"></p>
 
-        <button class="cancel-btn" onclick="cancelJob()">Cancel</button>
+        <button class="cancel-btn" id="cancelBtn">Cancel</button>
+        <button class="cancel-btn" id="forceRedirectBtn" style="margin-left: 10px;">Force Redirect</button>
     </div>
 
     <script>
+    // Global functions for button handlers
+    function manualRedirect() {
+        console.log('[loading.jsp] Manual redirect triggered');
+        window.location = 'exam.jsp';
+    }
+
+    function cancelJob() {
+        console.log('[loading.jsp] Cancel triggered');
+        var jobId = '<%= jobId %>';
+        clearTimeout(window.pollTimer);
+        fetch('jobStatus.jsp?jobId=' + encodeURIComponent(jobId) + '&cancel=1', {
+            credentials: 'same-origin'
+        }).finally(function () {
+            window.location = 'setup.jsp';
+        });
+    }
+
+    // Set up button event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        var cancelBtn = document.getElementById('cancelBtn');
+        var forceRedirectBtn = document.getElementById('forceRedirectBtn');
+        
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', cancelJob);
+            console.log('[loading.jsp] Cancel button listener attached');
+        } else {
+            console.error('[loading.jsp] Cancel button not found');
+        }
+        
+        if (forceRedirectBtn) {
+            forceRedirectBtn.addEventListener('click', manualRedirect);
+            console.log('[loading.jsp] Force redirect button listener attached');
+        } else {
+            console.error('[loading.jsp] Force redirect button not found');
+        }
+    });
+
+    // Polling logic
     (function () {
         var jobId      = '<%= jobId %>';
         var pollUrl    = 'jobStatus.jsp?jobId=' + encodeURIComponent(jobId);
@@ -143,6 +198,9 @@
         var progressBar = document.getElementById('progressBar');
         var statusLine  = document.getElementById('statusLine');
         var etaLine     = document.getElementById('etaLine');
+
+        console.log('[loading.jsp] Starting polling for jobId:', jobId);
+        console.log('[loading.jsp] Poll URL:', pollUrl);
 
         // Status messages shown in sequence while waiting
         var messages = [
@@ -175,9 +233,11 @@
 
         function poll() {
             pollCount++;
+            console.log('[loading.jsp] Poll #' + pollCount + ' for jobId:', jobId);
 
             if (pollCount > maxPolls) {
                 clearTimeout(timer);
+                console.error('[loading.jsp] Max polls reached, giving up');
                 alert('AI generation is taking too long. Please try again or use Database questions.');
                 window.location = 'setup.jsp';
                 return;
@@ -185,47 +245,46 @@
 
             updateProgress(pollCount);
 
+            console.log('[loading.jsp] Fetching:', pollUrl);
             fetch(pollUrl, { credentials: 'same-origin' })
                 .then(function (res) {
+                    console.log('[loading.jsp] Response status:', res.status);
                     if (!res.ok) throw new Error('HTTP ' + res.status);
                     return res.json();
                 })
                 .then(function (data) {
+                    console.log('[loading.jsp] Response data:', data);
                     if (data.status === 'done') {
                         progressBar.style.width = '100%';
                         statusLine.textContent  = 'Questions ready!';
                         etaLine.textContent     = '';
+                        console.log('[loading.jsp] Job done, redirecting to exam.jsp');
                         // Small delay so user sees the "100%" state
                         setTimeout(function () { window.location = 'exam.jsp'; }, 400);
 
                     } else if (data.status === 'error') {
                         clearTimeout(timer);
+                        console.error('[loading.jsp] Job error:', data.message);
                         alert(data.message || 'AI generation failed. Please try again.');
                         window.location = 'setup.jsp';
 
                     } else {
+                        console.log('[loading.jsp] Job still pending, continuing to poll');
                         // still 'pending' — keep polling
                         timer = setTimeout(poll, 2000);
                     }
                 })
                 .catch(function (err) {
-                    console.warn('[loading.jsp] Poll error:', err);
+                    console.error('[loading.jsp] Poll error:', err);
                     // Don't stop on a transient network error — retry
                     timer = setTimeout(poll, 3000);
                 });
         }
 
-        function cancelJob() {
-            clearTimeout(timer);
-            fetch('jobStatus.jsp?jobId=' + encodeURIComponent(jobId) + '&cancel=1', {
-                credentials: 'same-origin'
-            }).finally(function () {
-                window.location = 'setup.jsp';
-            });
-        }
-
         // Start first poll after 1s (give server a moment to begin)
+        console.log('[loading.jsp] Starting first poll in 1 second');
         timer = setTimeout(poll, 1000);
+        window.pollTimer = timer; // Store globally for cancel access
     })();
     </script>
 </body>
