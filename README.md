@@ -146,6 +146,18 @@ docker run -p 8080:8080 examhub
 
 ---
 
+## 📚 Documentation
+
+Detailed project documents are in the [`docs/`](docs/) folder:
+
+| Document | Description |
+|----------|-------------|
+| [Product Requirements (PRD)](docs/PRD.md) | Problem, users, goals, features, MVP scope, user stories, risks |
+| [Software Requirements (SRS)](docs/SRS.md) | Functional and non-functional requirements, data model, business rules, test matrix |
+
+
+---
+
 ## 👤 Author
 
 **Sayon Biswas**
