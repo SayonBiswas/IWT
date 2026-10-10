@@ -63,7 +63,7 @@
   </div>
 </nav>
 
-<script>
+<script nonce="${cspNonce}">
 (function () {
   var html  = document.documentElement;
   var btn   = document.getElementById('themeBtn');

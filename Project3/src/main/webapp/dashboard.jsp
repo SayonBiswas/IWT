@@ -185,7 +185,7 @@
     </div>
 
     <%-- ── Typewriter script ──────────────────────────────────────── --%>
-    <script>
+    <script nonce="${cspNonce}">
         document.addEventListener("DOMContentLoaded", () => {
             const el       = document.getElementById('typing-welcome');
             const fullText = el.textContent || el.innerText;

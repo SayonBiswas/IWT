@@ -101,7 +101,7 @@
                         ps.setString(2, hashedPassword);
                         ps.setString(3, email.trim().toLowerCase());
                         ps.executeUpdate();
-                        out.print("<script>alert('Registered!'); window.location='login.jsp';</script>");
+                        out.print("<script nonce='" + request.getAttribute("cspNonce") + "'>alert('Registered!'); window.location='login.jsp';</script>");
                     } catch (Exception e) {
                         // log server-side only — don't expose stack trace
                         getServletContext().log("Registration error", e);

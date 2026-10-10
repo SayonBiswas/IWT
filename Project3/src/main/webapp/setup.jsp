@@ -96,7 +96,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="${cspNonce}">
     (function () {
         const form = document.getElementById('setupForm');
         const topicInput = document.getElementById('topic_input');
@@ -108,12 +108,12 @@
                 alert('Please enter a topic.');
                 return;
             }
-            
+
             // Show loading state on button immediately
             const btn = document.querySelector('button[type="submit"]');
             const sourceValue = document.querySelector('input[name="source"]:checked').value;
             const isAI = sourceValue === 'ai';
-            
+
             btn.disabled = true;
             if (isAI) {
                 btn.innerHTML = '<span class="btn-spinner"></span> Generating AI Questions... Please wait';

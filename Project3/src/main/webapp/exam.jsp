@@ -245,7 +245,7 @@
       </div>
     </div>
 
-    <script>
+    <script nonce="${cspNonce}">
         window.addEventListener('load', function () {
             var overlay      = document.getElementById('loadingOverlay');
             var skeletonLoader = document.getElementById('skeletonLoader');

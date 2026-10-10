@@ -148,7 +148,7 @@
         <button class="cancel-btn" id="forceRedirectBtn" style="margin-left: 10px;">Force Redirect</button>
     </div>
 
-    <script>
+    <script nonce="${cspNonce}">
     // Global functions for button handlers
     function manualRedirect() {
         console.log('[loading.jsp] Manual redirect triggered');
@@ -170,14 +170,14 @@
     document.addEventListener('DOMContentLoaded', function() {
         var cancelBtn = document.getElementById('cancelBtn');
         var forceRedirectBtn = document.getElementById('forceRedirectBtn');
-        
+
         if (cancelBtn) {
             cancelBtn.addEventListener('click', cancelJob);
             console.log('[loading.jsp] Cancel button listener attached');
         } else {
             console.error('[loading.jsp] Cancel button not found');
         }
-        
+
         if (forceRedirectBtn) {
             forceRedirectBtn.addEventListener('click', manualRedirect);
             console.log('[loading.jsp] Force redirect button listener attached');

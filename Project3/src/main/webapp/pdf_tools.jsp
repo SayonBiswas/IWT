@@ -1,7 +1,6 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
 <%@ page import="org.apache.pdfbox.multipdf.PDFMergerUtility"%>
 <%@ page import="javax.servlet.http.Part, java.util.*, java.io.*"%>
-<%@ page contentType="text/html" %>
 <%
     if (session.getAttribute("username") == null) {
         response.sendRedirect("login.jsp");
@@ -114,7 +113,7 @@
         </div>
     </div>
 
-    <script>
+    <script nonce="${cspNonce}">
     (function () {
         const dropZone = document.getElementById('dropZone');
         const uploader = document.getElementById('pdfUploader');
@@ -161,11 +160,6 @@
             renderList();
         }
 
-        window.removeFile = function (index) {
-            files.splice(index, 1);
-            renderList();
-        };
-
         function renderList() {
             fileList.innerHTML = '';
             let totalSize = 0;
@@ -184,13 +178,22 @@
                     <div style="color:var(--ink-muted); font-size:11px;
                                 display:flex; align-items:center; gap:1rem;">
                         ${sizeMB} MB
-                        <button type="button" onclick="removeFile(${i})"
+                        <button type="button" class="remove-btn" data-index="${i}"
                                 style="background:none; border:none; cursor:pointer;
                                        color:var(--red); font-size:12px; padding:0;">
                             Remove
                         </button>
                     </div>`;
                 fileList.appendChild(row);
+
+                // Attach click listener to the remove button
+                const removeBtn = row.querySelector('.remove-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        files.splice(i, 1);
+                        renderList();
+                    });
+                }
             });
 
             const totalMB = (totalSize / (1024 * 1024)).toFixed(2);

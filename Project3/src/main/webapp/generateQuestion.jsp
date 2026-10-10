@@ -71,7 +71,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
 </head>
 <body>
-    <script>
+    <script nonce="${cspNonce}">
         setTimeout(function () {
             alert('<%= errorMsg.replace("'", "\\'").replace("\n", " ") %>');
             window.location = 'setup.jsp';
@@ -141,7 +141,7 @@
     <link rel="stylesheet" href="${pageContext.request.contextPath}/style.css?1.1">
 </head>
 <body>
-    <script>
+    <script nonce="${cspNonce}">
         setTimeout(function () {
             alert('<%= jobError.replace("'", "\\'") %>');
             window.location = 'setup.jsp';

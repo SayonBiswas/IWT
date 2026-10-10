@@ -145,8 +145,9 @@
         <a href="setup.jsp" class="btn-home">Take Another Exam</a>
       </div>
     </div>
-    <script>
-        <% if (score >= (totalRequested / 2.0)) { %>
+    <script nonce="${cspNonce}">
+        <% int threshold = (totalRequested != null) ? totalRequested : questionsCounted; %>
+        <% if (score >= (threshold / 2.0)) { %>
             confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         <% } %>
     </script>

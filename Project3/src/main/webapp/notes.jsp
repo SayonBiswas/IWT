@@ -224,7 +224,7 @@
     %>
 
     <%-- ── AI Suggestions JS ───────────────────────────────────────────── --%>
-    <script>
+    <script nonce="${cspNonce}">
     (function () {
         const aiBtn     = document.getElementById('aiBtn');
         const aiPanel   = document.getElementById('aiPanel');
@@ -253,6 +253,10 @@
             aiBtn.textContent = '⏳ Generating...';
 
             try {
+                // TODO: This call to api.anthropic.com is blocked by CSP connect-src 'self'.
+                // To fix, either:
+                // 1. Add https://api.anthropic.com to connect-src, or
+                // 2. Proxy the request through your own backend endpoint.
                 const response = await fetch("https://api.anthropic.com/v1/messages", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
