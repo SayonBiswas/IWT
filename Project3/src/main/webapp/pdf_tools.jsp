@@ -23,6 +23,7 @@
         String pdfError = request.getParameter("error");
 
         if ("POST".equalsIgnoreCase(request.getMethod())) {
+            java.util.List<File> tempFiles = new java.util.ArrayList<>();
             try {
                 Collection<Part> parts = request.getParts();
                 PDFMergerUtility merger = new PDFMergerUtility();
@@ -34,7 +35,20 @@
                     String ct = part.getContentType();
                     if (ct == null || !ct.equals("application/pdf")) continue;
 
-                    merger.addSource(part.getInputStream());
+                    // Save uploaded file to temporary file
+                    String fileName = part.getSubmittedFileName();
+                    if (fileName == null) fileName = "upload_" + System.currentTimeMillis() + ".pdf";
+                    File tempFile = File.createTempFile("pdfmerge_", "_" + fileName);
+                    try (InputStream is = part.getInputStream();
+                         FileOutputStream fos = new FileOutputStream(tempFile)) {
+                        byte[] buffer = new byte[8192];
+                        int bytesRead;
+                        while ((bytesRead = is.read(buffer)) != -1) {
+                            fos.write(buffer, 0, bytesRead);
+                        }
+                    }
+                    tempFiles.add(tempFile);
+                    merger.addSource(tempFile.getAbsolutePath());
                     fileCount++;
                 }
 
@@ -59,6 +73,17 @@
             } catch (Exception e) {
                 getServletContext().log("[pdf_tools.jsp] PDF merge failed", e);
                 pdfError = "Merge failed. Please ensure all files are valid PDFs.";
+            } finally {
+                // Clean up temporary files
+                for (File tempFile : tempFiles) {
+                    try {
+                        if (tempFile.exists()) {
+                            tempFile.delete();
+                        }
+                    } catch (Exception e) {
+                        getServletContext().log("[pdf_tools.jsp] Failed to delete temp file: " + tempFile.getAbsolutePath(), e);
+                    }
+                }
             }
         }
     %>
